@@ -224,11 +224,18 @@ namespace Project1
             Console.Write("Step 2/9 : Attribute Change");
             Processing();
 
-            util.GetElementsBy("Item").CopyAttribute("item_id", "gnm8_dn_part_number");
-            util.GetElementsBy("ItemRevision").CopyAttribute("item_revision_id", "gnm8_major_minor");
+            util.GetElementsBy("Item", "object_type", "Production").CopyAttribute("item_id", "gnm8_dn_part_number");
+            util.GetElementsBy("ItemRevision", "object_type", "Production Revision").CopyAttribute("item_revision_id", "gnm8_major_minor");
+            
+            util.GetElementsBy("Item", "object_type", "Prototype").CopyAttribute("item_id", "gnm8_dn_part_number");
+            util.GetElementsBy("ItemRevision", "object_type", "Prototype Revision").CopyAttribute("item_revision_id", "gnm8_major_minor");
 
-            util.GetElementsBy("Item", "object_type", "Reference").RemoveAttribute("gnm8_dn_part_number");
-            util.GetElementsBy("ItemRevision", "object_type", "Reference Revision").RemoveAttribute("gnm8_major_minor");
+            util.GetElementsBy("Item", "object_type", "PartialProcMatl").CopyAttribute("item_id", "gnm8_dn_part_number");
+            util.GetElementsBy("ItemRevision", "object_type", "PartialProcMatl Revision").CopyAttribute("item_revision_id", "gnm8_major_minor");
+
+            util.GetElementsBy("Item", "object_type", "StandardPart").CopyAttribute("item_id", "gnm8_dn_part_number");
+            util.GetElementsBy("ItemRevision", "object_type", "StandardPart Revision").CopyAttribute("item_revision_id", "gnm8_major_minor");
+
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
@@ -324,14 +331,14 @@ namespace Project1
             util.GetElementsBy("Item", "object_type", "PartialProcMatl").SetAttribute("object_type", "GNM8_CADItem");
             util.GetElementsBy("ItemRevision", "object_type", "PartialProcMatl Revision").SetAttribute("object_type", "GNM8_CADItemRevision");
 
-            //util.GetElementsBy("Item").SetAttribute("object_type", "GNM8_CADItem");
-            // util.GetElementsBy("ItemRevision").SetAttribute("object_type", "GNM8_CADItemRevision");
-            //Reference
-            //util.GetElementsBy("Item", "object_type", "Reference").SetAttribute("object_type", "GNM8_CADItem");
-            //util.GetElementsBy("ItemRevision", "object_type", "Reference Revision").SetAttribute("object_type", "GNM8_CADItemRevision");
-            //Form
             util.GetElementsBy("Form", "object_type", "Production Master").SetAttribute("object_type", "GNM8_CADItem Master");
             util.GetElementsBy("Form", "object_type", "Production Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
+
+            util.GetElementsBy("Form", "object_type", "Prototype Master").SetAttribute("object_type", "GNM8_CADItem Master");
+            util.GetElementsBy("Form", "object_type", "Prototype Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
+
+            util.GetElementsBy("Form", "object_type", "StandardPart Master").SetAttribute("object_type", "GNM8_CADItem Master");
+            util.GetElementsBy("Form", "object_type", "StandardPart Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
 
             util.GetElementsBy("Form", "object_type", "PartialProcMatl Master").SetAttribute("object_type", "GNM8_CADItem Master");
             util.GetElementsBy("Form", "object_type", "PartialProcMatl Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
