@@ -204,7 +204,7 @@ namespace Project1
                 .SetAttribute("name", "GNM8_ProductionReleased");
 
             //Prototype Status Changes
-            util.GetElementsBy("ItemRevision", "object_type", "Production Revision")
+            util.GetElementsBy("ItemRevision", "object_type", "Prototype Revision")
                 .Traverse("release_status_list", "ReleaseStatus", "puid")
                 .Filter("name", "Released")
                 .SetAttribute("name", "GNM8_PrototypeReleased");
