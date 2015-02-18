@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using System.Xml.Linq;
 using XMLMapping;
+using System.Linq;
 
 namespace Project1
 {
@@ -184,7 +185,7 @@ namespace Project1
 
 
             #region Status Changes
-            Console.Write("Step 1/9 : Status Change");
+            Console.Write("Step 1/10 : Status Change");
             Processing();
 
             //Production Status Changes
@@ -221,12 +222,12 @@ namespace Project1
             #endregion
 
             #region Change Attribute Names
-            Console.Write("Step 2/9 : Attribute Change");
+            Console.Write("Step 2/10 : Attribute Change");
             Processing();
 
             util.GetElementsBy("Item", "object_type", "Production").CopyAttribute("item_id", "gnm8_dn_part_number");
             util.GetElementsBy("ItemRevision", "object_type", "Production Revision").CopyAttribute("item_revision_id", "gnm8_major_minor");
-            
+
             util.GetElementsBy("Item", "object_type", "Prototype").CopyAttribute("item_id", "gnm8_dn_part_number");
             util.GetElementsBy("ItemRevision", "object_type", "Prototype Revision").CopyAttribute("item_revision_id", "gnm8_major_minor");
 
@@ -245,7 +246,7 @@ namespace Project1
             if (PartRenumber)
             {
 
-                Console.Write("Step 3/9 : Part Renumbering");
+                Console.Write("Step 3/10 : Part Renumbering");
 
                 Processing();
                 util.setIndex(RenumIndex);
@@ -256,7 +257,7 @@ namespace Project1
             }
             else
             {
-                Console.Write("Step 3/9 : Part Renumbering");
+                Console.Write("Step 3/10 : Part Renumbering");
 
                 Processing();
                 //util.setIndex(RenumIndex);
@@ -270,7 +271,7 @@ namespace Project1
             #endregion
 
             #region Uppercase
-            Console.Write("Step 4/9 : Uppercase");
+            Console.Write("Step 4/10 : Uppercase");
             Processing();
             util.GetElementsBy("Item").ToUpperValue("gnm8_dn_part_number");
             util.GetElementsBy("Form").ToUpperValue("object_name");
@@ -280,7 +281,7 @@ namespace Project1
             #endregion
 
             #region Remove Attributes
-            Console.Write("Step 5/9 : Remove Attributes");
+            Console.Write("Step 5/10 : Remove Attributes");
             Processing();
 
             util.GetElementsBy("Form", "object_type", "Production Master").RemoveAttribute("data_file");
@@ -293,7 +294,7 @@ namespace Project1
             #endregion
 
             #region Change Object Types and Node Names
-            Console.Write("Step 6/9 : Change Object Types and Node Names");
+            Console.Write("Step 6/10 : Change Object Types and Node Names");
             Processing();
 
             #region PomStubs
@@ -356,8 +357,13 @@ namespace Project1
             #endregion
 
             #region Move Attribute
-            Console.Write("Step 7/9 : Move Attributes");
+            Console.Write("Step 7/10 : Move Attributes");
             Processing();
+
+            //change attributes on DIAMMaster and GNM8Rev
+            util.GetElementsBy("GNM8_CADItemRevision").RenameAttribute("dia3_NDI_ECI_number", "gnm8_issue_no");
+            util.GetElementsBy("GNM8_CADItemRevision").RenameAttribute("dia3_Split_Number", "gnm8_Issue_split_no");
+            util.GetElementsBy("DIAMProductionMaster000").RenameAttribute("ECI_Number", "gnm8_issue_no");
 
             util.CopyAttributeByRel("gnm8_dn_part_number", "GNM8_CADItem", "GNM8_CADItemRevision", "puid", "parent_uid");
             util.GetElementsBy("GNM8_CADItem").RemoveAttribute("gnm8_dn_part_number");
@@ -369,11 +375,48 @@ namespace Project1
             util.CopyAttributeByRel("gnm8_car_model", "DIAMProductionMaster000", "GNM8_CADItemRevision", "parent_uid", "parent_uid");
 
             //Production REV
+
             util.GetElementsBy("DIAMProductionRevMaster000").RenameAttribute("Description", "object_desc");
             util.CopyAttributeByRel("object_desc", "DIAMProductionRevMaster000", "GNM8_CADItemRevision", "parent_uid", "parent_uid");
 
             util.GetElementsBy("DIAMProductionRevMaster000").RenameAttribute("ECI_Number", "gnm8_issue_no");
-            util.CopyAttributeByRel("gnm8_issue_no", "DIAMProductionRevMaster000", "GNM8_CADItemRevision", "parent_uid", "parent_uid");
+
+            //If only dia3_Split_Number IR Attribute is filled in, map to gnm8_issue_no
+            //If both dia3_Split_Number & ECI_Number are filled in, map dia3_Split_Number to gnm8_issue_no
+            IEnumerable<XElement> list =
+            from rev in util.GetElementsBy("GNM8_CADItemRevision").SearchList
+            join diamMaster in util.GetElementsBy("DIAMProductionRevMaster000").SearchList on (string)rev.Attribute("parent_uid") equals (string)diamMaster.Attribute("parent_uid").Value
+            where rev.Attribute("gnm8_Issue_split_no").Value != "" &&
+            rev.Attribute("gnm8_issue_no").Value == ""
+            //&& diamMaster.Attribute(" gnm8_issue_no").Value == ""
+            select rev;
+
+            if (list.Count() > 0)
+            {
+                foreach (XElement rev in list)
+                {
+                    rev.SetAttributeValue("gnm8_issue_no", rev.Attribute("gnm8_Issue_split_no").Value);
+
+                    util.GetSingleElementByAttrID("DIAMProductionRevMaster000", "parent_uid", rev.Attribute("parent_uid").Value).SetAttributeValue("gnm8_issue_no", rev.Attribute("gnm8_issue_no").Value);
+                }
+            }
+
+            //If only ECI_Number in Master form is filled in, map it to gnm8_issue_no
+            list =
+            from rev in util.GetElementsBy("GNM8_CADItemRevision").SearchList
+            join diamMaster in util.GetElementsBy("DIAMProductionRevMaster000").SearchList on (string)rev.Attribute("parent_uid") equals (string)diamMaster.Attribute("parent_uid").Value
+            where
+            rev.Attribute("gnm8_issue_no").Value == "" &&
+            diamMaster.Attribute("gnm8_issue_no").Value != ""
+            select diamMaster;
+
+            if (list.Count() > 0)
+            {
+                foreach (XElement diam in list)
+                {
+                    util.GetSingleElementByAttrID("GNM8_CADItemRevision", "parent_uid", diam.Attribute("parent_uid").Value).SetAttributeValue("gnm8_issue_no", diam.Attribute("gnm8_issue_no").Value);
+                }
+            }
 
             //REF
             util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Description", "object_desc");
@@ -394,7 +437,7 @@ namespace Project1
             #endregion
 
             #region Remove Nodes
-            Console.Write("Step 8/9 : Remove Nodes");
+            Console.Write("Step 8/10 : Remove Nodes");
             Processing();
 
             util.GetElementsBy("DIAMProductionMaster000").RemoveNodes();
@@ -410,9 +453,38 @@ namespace Project1
             #endregion
 
             #region Relationship Swap
-            Console.Write("Step 9/9 : Relationship Swap");
+            Console.Write("Step 9/10 : Relationship Swap");
             Processing();
             util.IMANRelSwap();
+            WriteLineComplete("Complete");
+            Console.WriteLine("");
+            #endregion
+
+            #region Tool Type Change
+            Console.Write("Step 10/10 : Tool Type Change");
+            Processing();
+
+            XElement WordPadNode = util.GetSingleElementByAttrID("Tool", "object_name", "WordPad.exe");
+            if (WordPadNode != null)
+            {
+                string WordPadElemId = "#" + WordPadNode.Attribute("elemId").Value;
+                string NotepadElemId = "#" + util.GetSingleElementByAttrID("Tool", "object_name", "Notepad").Attribute("elemId").Value;
+
+                list =
+                  from DatasetType in util.GetElementsBy("DatasetType").SearchList
+                  where DatasetType.Attribute("list_of_tools").Value.Contains(WordPadElemId) || DatasetType.Attribute("list_of_tools_view").Value.Contains(WordPadElemId)
+                  select DatasetType;
+
+                foreach (XElement el in list)
+                {
+                    el.Attribute("list_of_tools").Value.Replace(WordPadElemId, NotepadElemId);
+                    el.Attribute("list_of_tools_view").Value.Replace(WordPadElemId, NotepadElemId);
+                }
+
+                WordPadNode.Remove();
+            }
+
+
             WriteLineComplete("Complete");
             Console.WriteLine("");
             #endregion
@@ -557,9 +629,8 @@ namespace Project1
         private static void CleanFile(string file)
         {
             StringBuilder sb = new StringBuilder();
-            string newFile = Path.Combine(new string[]
-            {Path.GetDirectoryName(file) , Path.GetFileNameWithoutExtension(file) + "_Clean" + Path.GetExtension(file)});
-            
+            string newFile = Path.Combine(new string[] { Path.GetDirectoryName(file), Path.GetFileNameWithoutExtension(file) + "_Clean" + Path.GetExtension(file) });
+
             using (TextWriter writer = File.CreateText(newFile))
             {
                 using (StreamReader reader = new StreamReader(file))
