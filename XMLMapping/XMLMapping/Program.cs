@@ -363,6 +363,7 @@ namespace Project1
             //change attributes on DIAMMaster and GNM8Rev
             util.GetElementsBy("GNM8_CADItemRevision").RenameAttribute("dia3_NDI_ECI_number", "gnm8_issue_no");
             util.GetElementsBy("GNM8_CADItemRevision").RenameAttribute("dia3_Split_Number", "gnm8_Issue_split_no");
+            util.GetElementsBy("GNM8_CADItemRevision").RenameAttribute("dia3_partNumber", "gnm8_dn_part_number");
             util.GetElementsBy("DIAMProductionMaster000").RenameAttribute("ECI_Number", "gnm8_issue_no");
 
             util.CopyAttributeByRel("gnm8_dn_part_number", "GNM8_CADItem", "GNM8_CADItemRevision", "puid", "parent_uid");
