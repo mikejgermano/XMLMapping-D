@@ -138,10 +138,7 @@ namespace XMLMapping
         /// <param name="TraverseAttrDestination"></param>
         public void CopyAttributeByRel(String AttributeName, String SourceElementName, String DestinationElementName, String TraverseAttrSource, String TraverseAttrDestination)
         {
-            String[] Params = { AttributeName, SourceElementName, DestinationElementName, TraverseAttrSource, TraverseAttrDestination };
-
-
-            var result = GetElementsBy(SourceElementName).SearchList;
+            IEnumerable<XElement> result = GetElementsBy(SourceElementName).SearchList;
             if (result.Count() == 0)
             {
 
@@ -161,6 +158,53 @@ namespace XMLMapping
                     continue;
                 }
                 SearchElements mEls = GetElementsBy(DestinationElementName, TraverseAttrDestination, travSource.Value);
+                if (mEls.SearchList.Count == 0)
+                {
+                    continue;
+                }
+
+                mEls.SetAttribute(AttributeName, att.Value);
+            }
+
+        }
+
+        public void CopyAttributeByRel(String AttributeName, String SourceElementName, String SourceAttribute, String SourceVal, String DestinationElementName, String DestAttr, String DestVal, String TraverseAttrSource, String TraverseAttrDestination)
+        {
+            IEnumerable<XElement> result = null;
+            SearchElements mEls = null;
+
+            if (SourceAttribute != "" && SourceVal != "")
+                result = GetElementsBy(SourceElementName, SourceAttribute, SourceVal).SearchList;
+            else
+            {
+                result = GetElementsBy(SourceElementName).SearchList;
+            }
+            if (result.Count() == 0)
+            {
+
+                return;
+            }
+
+            foreach (XElement el in result)
+            {
+                XAttribute att = el.Attribute(AttributeName);
+                if (att == null)
+                {
+                    continue;
+                }
+                XAttribute travSource = el.Attribute(TraverseAttrSource);
+                if (travSource == null)
+                {
+                    continue;
+                }
+                if (DestAttr != "" && DestVal != "")
+                {
+                    mEls = GetElementsBy(DestinationElementName, TraverseAttrDestination, travSource.Value);
+                }
+                else
+                {
+                    mEls = GetElementsBy(DestinationElementName, DestAttr, DestVal).Filter(TraverseAttrDestination, travSource.Value);
+                }
                 if (mEls.SearchList.Count == 0)
                 {
                     continue;

@@ -305,8 +305,9 @@ namespace Project1
 
             util.GetElementsBy("POM_stub", "object_class", "Item").Filter("object_type", "Prototype").SetAttribute("object_type", "GNM8_CADItem");
             util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "Prototype Revision").SetAttribute("object_type", "GNM8_CADItemRevision");
-            //util.GetElementsBy("POM_stub", "object_class", "Item").Filter("object_type", "Reference").SetAttribute("object_type", "GNM8_CADItem");
-            //util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "Reference Revision").SetAttribute("object_type", "GNM8_CADItemRevision");
+
+            util.GetElementsBy("POM_stub", "object_class", "Item").Filter("object_type", "Reference").SetAttribute("object_type", "GNM5_Reference");
+            util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "Reference Revision").SetAttribute("object_type", "GNM5_ReferenceRevision");
 
             util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Production Master").SetAttribute("object_type", "GNM8_CADItem Master");
             util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Production Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
@@ -332,6 +333,10 @@ namespace Project1
             util.GetElementsBy("Item", "object_type", "PartialProcMatl").SetAttribute("object_type", "GNM8_CADItem");
             util.GetElementsBy("ItemRevision", "object_type", "PartialProcMatl Revision").SetAttribute("object_type", "GNM8_CADItemRevision");
 
+            //Reference
+            util.GetElementsBy("Item", "object_type", "Reference").SetAttribute("object_type", "GNM5_Reference");
+            util.GetElementsBy("ItemRevision", "object_type", "Reference Revision").SetAttribute("object_type", "GNM5_ReferenceRevision");
+
             util.GetElementsBy("Form", "object_type", "Production Master").SetAttribute("object_type", "GNM8_CADItem Master");
             util.GetElementsBy("Form", "object_type", "Production Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
 
@@ -350,6 +355,10 @@ namespace Project1
             util.GetElementsBy("Item", "object_type", "GNM8_CADItem").RenameNodes("GNM8_CADItem");
             util.GetElementsBy("ItemRevision", "object_type", "GNM8_CADItemRevision").RenameNodes("GNM8_CADItemRevision");
 
+            //Reference
+            util.GetElementsBy("Item", "object_type", "GNM5_Reference").RenameNodes("GNM5_Reference");
+            util.GetElementsBy("ItemRevision", "object_type", "GNM5_ReferenceRevision").RenameNodes("GNM5_ReferenceRevision");
+
             #endregion
 
             WriteLineComplete("Complete");
@@ -366,11 +375,20 @@ namespace Project1
             util.GetElementsBy("GNM8_CADItemRevision").RenameAttribute("dia3_partNumber", "gnm8_dn_part_number");
             util.GetElementsBy("DIAMProductionMaster000").RenameAttribute("ECI_Number", "gnm8_issue_no");
 
+            //change attributes on DIAMRefMaster
+            util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Customer", "gnm5_Customer");
+            util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Description", "gnm5_Description");
+            util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Lead_Program", "gnm5_Lead_Program");
+            util.GetElementsBy("DIAMReferenceRevMaster000").RenameAttribute("ECI_Number", "gnm5_ECI_Number");
+            util.GetElementsBy("DIAMReferenceRevMaster000").RenameAttribute("Description", "gnm5_Description");
+
+
             util.CopyAttributeByRel("gnm8_dn_part_number", "GNM8_CADItem", "GNM8_CADItemRevision", "puid", "parent_uid");
             util.GetElementsBy("GNM8_CADItem").RemoveAttribute("gnm8_dn_part_number");
 
+            #region transfer to master form
             util.GetElementsBy("DIAMProductionMaster000").RenameAttribute("Description", "object_desc");
-            util.CopyAttributeByRel("object_desc", "DIAMProductionMaster000", "GNM8_CADItem", "parent_uid", "puid");
+            util.CopyAttributeByRel("object_desc", "DIAMProductionMaster000", "", "", "Form", "object_type", "Production Master", "parent_uid", "parent_uid");
 
             util.GetElementsBy("DIAMProductionMaster000").RenameAttribute("Lead_Program", "gnm8_car_model");
             util.CopyAttributeByRel("gnm8_car_model", "DIAMProductionMaster000", "GNM8_CADItemRevision", "parent_uid", "parent_uid");
@@ -378,9 +396,13 @@ namespace Project1
             //Production REV
 
             util.GetElementsBy("DIAMProductionRevMaster000").RenameAttribute("Description", "object_desc");
-            util.CopyAttributeByRel("object_desc", "DIAMProductionRevMaster000", "GNM8_CADItemRevision", "parent_uid", "parent_uid");
+            util.CopyAttributeByRel("object_desc", "DIAMProductionRevMaster000", "", "", "Form", "object_type", "Production Revision Master", "parent_uid", "parent_uid");
 
             util.GetElementsBy("DIAMProductionRevMaster000").RenameAttribute("ECI_Number", "gnm8_issue_no");
+
+            #endregion
+
+            
 
             //If only dia3_Split_Number IR Attribute is filled in, map to gnm8_issue_no
             //If both dia3_Split_Number & ECI_Number are filled in, map dia3_Split_Number to gnm8_issue_no
@@ -420,8 +442,8 @@ namespace Project1
             }
 
             //REF
-            util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Description", "object_desc");
-            util.CopyAttributeByRel("object_desc", "DIAMReferenceMaster000", "GNM8_CADItem", "parent_uid", "puid");
+            util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Description", "gnm5_Description");
+            util.CopyAttributeByRel("gnm5_Description", "DIAMReferenceMaster000", "GNM8_CADItem", "parent_uid", "puid");
 
             util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Lead_Program", "gnm8_car_model");
             util.CopyAttributeByRel("gnm8_car_model", "DIAMReferenceMaster000", "GNM8_CADItemRevision", "parent_uid", "parent_uid");
