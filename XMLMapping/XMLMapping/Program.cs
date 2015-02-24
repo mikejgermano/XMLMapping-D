@@ -336,6 +336,7 @@ namespace Project1
             //Reference
             util.GetElementsBy("Item", "object_type", "Reference").SetAttribute("object_type", "GNM5_Reference");
             util.GetElementsBy("ItemRevision", "object_type", "Reference Revision").SetAttribute("object_type", "GNM5_ReferenceRevision");
+            util.GetElementsBy("Form", "object_type", "Reference Master").SetAttribute("object_type", "GNM5_ReferenceRevision Master");
 
             util.GetElementsBy("Form", "object_type", "Production Master").SetAttribute("object_type", "GNM8_CADItem Master");
             util.GetElementsBy("Form", "object_type", "Production Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
@@ -399,6 +400,7 @@ namespace Project1
             util.CopyAttributeByRel("object_desc", "DIAMProductionRevMaster000", "", "", "Form", "object_type", "Production Revision Master", "parent_uid", "parent_uid");
 
             util.GetElementsBy("DIAMProductionRevMaster000").RenameAttribute("ECI_Number", "gnm8_issue_no");
+            util.CopyAttributeByRel("gnm8_issue_no", "DIAMProductionRevMaster000", "", "", "Form", "object_type", "Production Revision Master", "parent_uid", "parent_uid");
 
             #endregion
 
