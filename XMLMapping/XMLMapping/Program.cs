@@ -374,7 +374,9 @@ namespace Project1
             //change attributes on DIAMMaster and GNM8Rev
             util.GetElementsBy("GNM8_CADItemRevision").RenameAttribute("dia3_NDI_ECI_number", "gnm8_issue_no");
             util.GetElementsBy("GNM8_CADItemRevision").RenameAttribute("dia3_Split_Number", "gnm8_Issue_split_no");
-            util.GetElementsBy("GNM8_CADItemRevision").RenameAttribute("dia3_partNumber", "gnm8_dn_part_number");
+            
+            util.GetElementsBy("GNM8_CADItemRevision").RemoveAttribute("dia3_partNumber");
+            
             util.GetElementsBy("DIAMProductionMaster000").RenameAttribute("ECI_Number", "gnm8_issue_no");
 
             //change attributes on DIAMRefMaster
@@ -390,18 +392,15 @@ namespace Project1
 
             #region transfer to master form
             util.GetElementsBy("DIAMProductionMaster000").RenameAttribute("Description", "object_desc");
-            util.CopyAttributeByRel("object_desc", "DIAMProductionMaster000", "", "", "Form", "object_type", "Production Master", "parent_uid", "parent_uid");
+            util.CopyAttributeByRel("object_desc", "DIAMProductionMaster000","GNM8_CADItem","parent_uid","puid");
 
             util.GetElementsBy("DIAMProductionMaster000").RenameAttribute("Lead_Program", "gnm8_car_model");
-            util.CopyAttributeByRel("gnm8_car_model", "DIAMProductionMaster000", "GNM8_CADItemRevision", "parent_uid", "parent_uid");
+            util.CopyAttributeByRel("gnm8_car_model", "DIAMProductionMaster000", "GNM8_CADItem", "parent_uid", "puid");
 
-            //Production REV
+            //Cad Item Master REV
 
             util.GetElementsBy("DIAMProductionRevMaster000").RenameAttribute("Description", "object_desc");
-            util.CopyAttributeByRel("object_desc", "DIAMProductionRevMaster000", "", "", "Form", "object_type", "Production Revision Master", "parent_uid", "parent_uid");
-
-            util.GetElementsBy("DIAMProductionRevMaster000").RenameAttribute("ECI_Number", "gnm8_issue_no");
-            util.CopyAttributeByRel("gnm8_issue_no", "DIAMProductionRevMaster000", "", "", "Form", "object_type", "Production Revision Master", "parent_uid", "parent_uid");
+            util.CopyAttributeByRel("object_desc", "DIAMProductionRevMaster000", "GNM8_CADItemRevision", "parent_uid", "parent_uid");
 
             #endregion
 
