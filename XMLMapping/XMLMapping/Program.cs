@@ -14,6 +14,8 @@ namespace Project1
     {
         public static ushort RenumIndex = 1;
         public static DateTime startTime;
+        public static int totalFiles = 0;
+        public static int fileCount = 0;
         public static void Main(string[] args)
         {
 
@@ -141,7 +143,7 @@ namespace Project1
                     foreach (string file in files)
                     {
                         HelperUtility util = new HelperUtility();
-
+                        totalFiles = files.Count();
 
 
                         util.LoadFile(file);
@@ -179,6 +181,8 @@ namespace Project1
             Console.WriteLine("-------------------------------------------------------------------");
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("Loading File " + file);
+            fileCount++;
+            Console.WriteLine("File " + fileCount.ToString() + "/" + totalFiles.ToString());
             Console.WriteLine("");
 
             Console.ForegroundColor = ConsoleColor.White;
@@ -375,8 +379,8 @@ namespace Project1
             util.GetElementsBy("GNM8_CADItemRevision").RenameAttribute("dia3_Split_Number", "gnm8_Issue_split_no");
             util.GetElementsBy("GNM8_CADItemRevision").RemoveAttribute("dia3_partNumber");
 
-            util.GetElementsBy("GNM5_ReferenceRevision").RenameAttribute("dia3_NDI_ECI_number", "gnm8_issue_no");
-            util.GetElementsBy("GNM5_ReferenceRevision").RenameAttribute("dia3_Split_Number", "gnm8_Issue_split_no");
+            util.GetElementsBy("GNM5_ReferenceRevision").RemoveAttribute("dia3_NDI_ECI_number");
+            util.GetElementsBy("GNM5_ReferenceRevision").RemoveAttribute("dia3_Split_Number");
             util.GetElementsBy("GNM5_ReferenceRevision").RemoveAttribute("dia3_partNumber");
            
 
@@ -521,8 +525,8 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
-            Console.WriteLine("");
 
+            Console.WriteLine("");
             if (PartRenumber)
                 Console.WriteLine("Next Part Renumber Index: " + "NA" + RenumIndex.ToString("000000000"));
 
