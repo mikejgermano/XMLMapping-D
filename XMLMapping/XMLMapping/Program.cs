@@ -525,6 +525,16 @@ namespace Project1
                     el.Attribute("list_of_tools_view").Value.Replace(WordPadElemId, NotepadElemId);
                 }
 
+                list =
+                     from Dataset in util.GetElementsBy("Dataset").SearchList
+                     where Dataset.Attribute("tool_used").Value.Contains(WordPadElemId)
+                     select Dataset;
+
+                foreach (XElement el in list)
+                {
+                    el.Attribute("tool_used").Value = NotepadElemId;
+                }
+
                 WordPadNode.Remove();
             }
 
