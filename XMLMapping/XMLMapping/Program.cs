@@ -292,6 +292,10 @@ namespace Project1
             util.GetElementsBy("Form", "object_type", "Production Revision Master").RemoveAttribute("data_file");
             util.GetElementsBy("Form", "object_type", "PartialProcMatl Master").RemoveAttribute("data_file");
             util.GetElementsBy("Form", "object_type", "PartialProcMatl Revision Master").RemoveAttribute("data_file");
+            util.GetElementsBy("Form", "object_type", "Prototype Master").RemoveAttribute("data_file");
+            util.GetElementsBy("Form", "object_type", "Prototype Revision Master").RemoveAttribute("data_file");
+            util.GetElementsBy("Form", "object_type", "Reference Master").RemoveAttribute("data_file");
+            util.GetElementsBy("Form", "object_type", "Reference Revision Master").RemoveAttribute("data_file");
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
@@ -306,9 +310,11 @@ namespace Project1
             util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "Production Revision").SetAttribute("object_type", "GNM8_CADItemRevision");
             util.GetElementsBy("POM_stub", "object_class", "Item").Filter("object_type", "PartialProcMatl").SetAttribute("object_type", "GNM8_CADItem");
             util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "PartialProcMatl Revision").SetAttribute("object_type", "GNM8_CADItemRevision");
-
             util.GetElementsBy("POM_stub", "object_class", "Item").Filter("object_type", "Prototype").SetAttribute("object_type", "GNM8_CADItem");
             util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "Prototype Revision").SetAttribute("object_type", "GNM8_CADItemRevision");
+            util.GetElementsBy("POM_stub", "object_class", "Item").Filter("object_type", "StandardPart").SetAttribute("object_type", "GNM8_CADItem");
+            util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "StandardPart Revision").SetAttribute("object_type", "GNM8_CADItemRevision");
+
 
             util.GetElementsBy("POM_stub", "object_class", "Item").Filter("object_type", "Reference").SetAttribute("object_type", "GNM5_Reference");
             util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "Reference Revision").SetAttribute("object_type", "GNM5_ReferenceRevision");
@@ -319,6 +325,8 @@ namespace Project1
             util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "PartialProcMatl Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
             util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Prototype Master").SetAttribute("object_type", "GNM8_CADItem Master");
             util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Prototype Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
+            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "StandardPart Master").SetAttribute("object_type", "GNM8_CADItem Master");
+            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "StandardPart Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
 
             #endregion
 
@@ -401,7 +409,7 @@ namespace Project1
             util.CopyAttributeByRel("object_desc", "DIAMProductionMaster000","GNM8_CADItem","parent_uid","puid");
 
             util.GetElementsBy("DIAMProductionMaster000").RenameAttribute("Lead_Program", "gnm8_car_model");
-            util.CopyAttributeByRel("gnm8_car_model", "DIAMProductionMaster000", "GNM8_CADItemRevision", "parent_uid", "puid");
+            util.CopyAttributeByRel("gnm8_car_model", "DIAMProductionMaster000", "GNM8_CADItemRevision", "parent_uid", "parent_uid");
 
             //Cad Item Master REV
 
@@ -453,22 +461,20 @@ namespace Project1
 
             //REF
             util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Customer", "gnm5_Customer");
-            util.CopyAttributeByRel("gnm5_Customer", "DIAMReferenceMaster000", "GNM5_Reference", "parent_uid", "puid");
+            util.CopyAttributeByRel("gnm5_Customer", "DIAMReferenceMaster000","","", "Form","object_type", "GNM5_Reference Master", "parent_uid", "parent_uid");
 
             util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Description", "gnm5_Description");
-            util.CopyAttributeByRel("gnm5_Description", "DIAMReferenceMaster000", "GNM5_Reference", "parent_uid", "parent_uid");
-
-
-            //REF REV
+            util.CopyAttributeByRel("gnm5_Description", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_Reference Master", "parent_uid", "parent_uid");
 
             util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Lead_Program", "gnm5_Lead_Program");
-            util.CopyAttributeByRel("gnm8_car_model", "DIAMReferenceMaster000", "GNM5_ReferenceRevision", "parent_uid", "parent_uid");
+            util.CopyAttributeByRel("gnm5_Lead_Program", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_Reference Master", "parent_uid", "parent_uid");
 
+            //REF REV
             util.GetElementsBy("DIAMReferenceRevMaster000").RenameAttribute("Description", "object_desc");
-            util.CopyAttributeByRel("object_desc", "DIAMReferenceRevMaster000", "GNM5_ReferenceRevision", "parent_uid", "parent_uid");
+            util.CopyAttributeByRel("object_desc", "DIAMReferenceRevMaster000", "", "", "Form", "object_type", "GNM5_ReferenceRevision Master", "parent_uid", "parent_uid");
 
             util.GetElementsBy("DIAMReferenceRevMaster000").RenameAttribute("ECI_Number", "gnm5_ECI_Number");
-            util.CopyAttributeByRel("gnm5_ECI_Number", "DIAMReferenceRevMaster000", "GNM5_ReferenceRevision", "parent_uid", "parent_uid");
+            util.CopyAttributeByRel("gnm5_ECI_Number", "DIAMReferenceRevMaster000", "", "", "Form", "object_type", "GNM5_ReferenceRevision Master", "parent_uid", "parent_uid");
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
