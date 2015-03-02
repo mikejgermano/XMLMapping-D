@@ -287,12 +287,15 @@ namespace XMLMapping
             IEnumerable<XElement> list1 =
                  from el in xmlFile.Descendants()
                  where el.Attribute("object_type") != null &&
-                 el.Attribute("object_type").Value != "Production" &&
                  el.Attribute("object_type").Value != "Production Revision" &&
                  el.Attribute("object_type").Value != "Prototype" &&
                  el.Attribute("object_type").Value != "Prototype Revision" &&
                  el.Attribute("object_type").Value != "Production Master" &&
                  el.Attribute("object_type").Value != "Production Revision Master" &&
+                 el.Attribute("object_type").Value != "StandardPart Master" &&
+                 el.Attribute("object_type").Value != "StandardPart Revision Master" &&
+                 el.Attribute("object_type").Value != "PartialProcMatl Master" &&
+                 el.Attribute("object_type").Value != "PartialProcMatl Revision Master" &&
                  el.Attribute("release_status_list") != null &&
                  el.Attribute("release_status_list").Value != "" &&
                  el.Name.LocalName != "Dataset"

@@ -208,6 +208,19 @@ namespace Project1
                 .Filter("name", "EAD_Approved")
                 .SetAttribute("name", "GNM8_ProductionReleased");
 
+            //StandardPart
+
+            util.GetElementsBy("ItemRevision", "object_type", "StandardPart Revision")
+               .Traverse("release_status_list", "ReleaseStatus", "puid")
+               .Filter("name", "Released")
+               .SetAttribute("name", "GNM8_ProductionReleased");
+
+            //Partial
+            util.GetElementsBy("ItemRevision", "object_type", "PartialProcMatl Revision")
+               .Traverse("release_status_list", "ReleaseStatus", "puid")
+               .Filter("name", "Released")
+               .SetAttribute("name", "GNM8_ProductionReleased");
+
             //Prototype Status Changes
             util.GetElementsBy("ItemRevision", "object_type", "Prototype Revision")
                 .Traverse("release_status_list", "ReleaseStatus", "puid")
@@ -475,6 +488,47 @@ namespace Project1
 
             util.GetElementsBy("DIAMReferenceRevMaster000").RenameAttribute("ECI_Number", "gnm5_ECI_Number");
             util.CopyAttributeByRel("gnm5_ECI_Number", "DIAMReferenceRevMaster000", "", "", "Form", "object_type", "GNM5_ReferenceRevision Master", "parent_uid", "parent_uid");
+
+            WriteLineComplete("Complete");
+            Console.WriteLine("");
+            #endregion
+
+            #region ParameterCode
+            Console.Write("Step 7.5/10 : Dataset- add Parameter Code");
+            Processing();
+
+            var paramList = (from rev in util.GetElementsBy("GNM8_CADItemRevision").SearchList
+                    join Dataset in util.GetElementsBy("Dataset").SearchList on (string)rev.Attribute("parent_uid") equals (string)Dataset.Attribute("parent_uid").Value
+                    select new  {rev, Dataset }).ToList();
+
+            for (int i = 0; i < paramList.Count(); i++)
+            {
+                XElement rev = paramList[i].rev;
+                XElement dataset = paramList[i].Dataset;
+
+                string type = (string)dataset.Attribute("object_type").Value;
+
+              
+                switch (type)
+                {
+                    case "UGMASTER":
+                    case "CATProduct":
+                    case "CATPart":
+                        rev.SetAttributeValue("gnm8_parameter_code","c");
+                        break;
+                    case "UGPART":
+                    case "CATDrawing":
+                        rev.SetAttributeValue("gnm8_parameter_code", "d");
+                        break;
+                    case "UGALTREP":
+                    case "CATShape":
+                        rev.SetAttributeValue("gnm8_parameter_code", "s");
+                        break;
+                }
+
+
+            }
+
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
