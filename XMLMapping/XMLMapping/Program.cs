@@ -358,7 +358,7 @@ namespace Project1
 
             foreach (XElement el in listSd)
             {
-                el.SetAttributeValue("gnm8_part_name", el.Attribute("object_name").Value);
+                el.SetAttributeValue("gnm8_part_name", el.Attribute("object_name").Value.ToUpper());
             }
 
             WriteLineComplete("Complete");
@@ -400,6 +400,7 @@ namespace Project1
             util.GetElementsBy("Item").ToUpperValue("item_id");
             util.GetElementsBy("Form").ToUpperValue("object_name");
             util.GetElementsBy("ItemRevision").ToUpperValue("item_revision_id");
+            util.GetElementsBy("ItemRevision").ToUpperValue("object_name");
             WriteLineComplete("Complete");
             Console.WriteLine("");
             #endregion
