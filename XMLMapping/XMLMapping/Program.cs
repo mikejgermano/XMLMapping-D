@@ -352,6 +352,14 @@ namespace Project1
             util.GetElementsBy("Item", "object_type", "StandardPart").CopyAttribute("item_id", "gnm8_dn_part_number");
             util.GetElementsBy("ItemRevision", "object_type", "StandardPart Revision").CopyAttribute("item_revision_id", "gnm8_major_minor");
 
+            listSd = from el in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                     where el.Attribute("object_type").Value != "Reference"
+                     select el;
+
+            foreach (XElement el in listSd)
+            {
+                el.SetAttributeValue("gnm8_part_name", el.Attribute("object_name").Value);
+            }
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
@@ -384,7 +392,6 @@ namespace Project1
                 Console.WriteLine("");
             }
             #endregion
-
 
             #region Uppercase
             Console.Write("Step 4/10 : Uppercase");
