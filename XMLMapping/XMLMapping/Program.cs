@@ -237,6 +237,58 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
+            #region Remove JP
+            Console.Write("Step 1.5/10 : Remove JP");
+            Processing();
+            IEnumerable<XElement> listSd = from item in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Item")
+                                           where item.Attribute("item_id").Value.Substring(0, 2).ToUpper() == "JP"
+                                           select item;
+
+            foreach (XElement el in listSd)
+            {
+                el.Attribute("item_id").Value = el.Attribute("item_id").Value.Remove(0, 2);
+            }
+
+            listSd = from dataset in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Dataset")
+                     where dataset.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
+                     select dataset;
+
+            foreach (XElement el in listSd)
+            {
+                el.Attribute("object_name").Value = el.Attribute("object_name").Value.Remove(0, 2);
+            }
+
+            listSd = from form in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Form")
+                     where form.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
+                     select form;
+
+            foreach (XElement el in listSd)
+            {
+                el.Attribute("object_name").Value = el.Attribute("object_name").Value.Remove(0, 2);
+            }
+
+            
+            listSd = from form in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "PSBOMViewRevision")
+                     where form.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
+                     select form;
+
+            foreach (XElement el in listSd)
+            {
+                el.Attribute("object_name").Value = el.Attribute("object_name").Value.Remove(0, 2);
+            }
+
+            listSd = from form in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "PSBOMView")
+                     where form.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
+                     select form;
+
+            foreach (XElement el in listSd)
+            {
+                el.Attribute("object_name").Value = el.Attribute("object_name").Value.Remove(0, 2);
+            }
+            WriteLineComplete("Complete");
+            Console.WriteLine("");
+            #endregion
+
             #region Change Attribute Names
             Console.Write("Step 2/10 : Attribute Change");
             Processing();
@@ -286,10 +338,12 @@ namespace Project1
             }
             #endregion
 
+
             #region Uppercase
             Console.Write("Step 4/10 : Uppercase");
             Processing();
             util.GetElementsBy("Item").ToUpperValue("gnm8_dn_part_number");
+            util.GetElementsBy("Item").ToUpperValue("item_id");
             util.GetElementsBy("Form").ToUpperValue("object_name");
             util.GetElementsBy("ItemRevision").ToUpperValue("item_revision_id");
             WriteLineComplete("Complete");
@@ -493,7 +547,7 @@ namespace Project1
             #endregion
 
             #region ParameterCode
-            Console.Write("Step 7.5/10 : Dataset- add Parameter Code");
+            Console.Write("Step 7.5/10 : Dataset - add Parameter Code");
             Processing();
 
             var paramList = (from rev in util.GetElementsBy("GNM8_CADItemRevision").SearchList
