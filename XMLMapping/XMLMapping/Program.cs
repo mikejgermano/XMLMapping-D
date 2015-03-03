@@ -241,7 +241,8 @@ namespace Project1
             Console.Write("Step 1.5/10 : Remove JP");
             Processing();
             IEnumerable<XElement> listSd = from item in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Item")
-                                           where item.Attribute("item_id").Value.Substring(0, 2).ToUpper() == "JP"
+                                           where item.Attribute("item_id").Value.Count() > 2 &&
+                                           item.Attribute("item_id").Value.Substring(0, 2).ToUpper() == "JP"
                                            select item;
 
             foreach (XElement el in listSd)
@@ -250,7 +251,8 @@ namespace Project1
             }
 
             listSd = from dataset in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Dataset")
-                     where dataset.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
+                     where dataset.Attribute("object_name").Value.Count() > 2 &&
+                     dataset.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
                      select dataset;
 
             foreach (XElement el in listSd)
@@ -259,7 +261,8 @@ namespace Project1
             }
 
             listSd = from form in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Form")
-                     where form.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
+                     where form.Attribute("object_name").Value.Count() > 2 &&
+                     form.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
                      select form;
 
             foreach (XElement el in listSd)
@@ -269,7 +272,8 @@ namespace Project1
 
             
             listSd = from form in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "PSBOMViewRevision")
-                     where form.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
+                     where form.Attribute("object_name").Value.Count() > 2 &&
+                     form.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
                      select form;
 
             foreach (XElement el in listSd)
@@ -278,7 +282,8 @@ namespace Project1
             }
 
             listSd = from form in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "PSBOMView")
-                     where form.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
+                     where form.Attribute("object_name").Value.Count() > 2 &&
+                     form.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
                      select form;
 
             foreach (XElement el in listSd)
