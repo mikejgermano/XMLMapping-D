@@ -187,7 +187,6 @@ namespace Project1
 
             Console.ForegroundColor = ConsoleColor.White;
 
-
             #region Status Changes
             Console.Write("Step 1/10 : Status Change");
             Processing();
@@ -403,7 +402,7 @@ namespace Project1
             util.GetElementsBy("GNM5_ReferenceRevision").RemoveAttribute("dia3_NDI_ECI_number");
             util.GetElementsBy("GNM5_ReferenceRevision").RemoveAttribute("dia3_Split_Number");
             util.GetElementsBy("GNM5_ReferenceRevision").RemoveAttribute("dia3_partNumber");
-           
+
 
 
             //change attributes on DIAMRefMaster
@@ -419,7 +418,7 @@ namespace Project1
 
             #region transfer to master form
             util.GetElementsBy("DIAMProductionMaster000").RenameAttribute("Description", "object_desc");
-            util.CopyAttributeByRel("object_desc", "DIAMProductionMaster000","GNM8_CADItem","parent_uid","puid");
+            util.CopyAttributeByRel("object_desc", "DIAMProductionMaster000", "GNM8_CADItem", "parent_uid", "puid");
 
             util.GetElementsBy("DIAMProductionMaster000").RenameAttribute("Lead_Program", "gnm8_car_model");
             util.CopyAttributeByRel("gnm8_car_model", "DIAMProductionMaster000", "GNM8_CADItemRevision", "parent_uid", "parent_uid");
@@ -433,7 +432,7 @@ namespace Project1
 
             #endregion
 
-            
+
 
             //If only dia3_Split_Number IR Attribute is filled in, map to gnm8_issue_no
             //If both dia3_Split_Number & ECI_Number are filled in, map dia3_Split_Number to gnm8_issue_no
@@ -474,7 +473,7 @@ namespace Project1
 
             //REF
             util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Customer", "gnm5_Customer");
-            util.CopyAttributeByRel("gnm5_Customer", "DIAMReferenceMaster000","","", "Form","object_type", "GNM5_Reference Master", "parent_uid", "parent_uid");
+            util.CopyAttributeByRel("gnm5_Customer", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_Reference Master", "parent_uid", "parent_uid");
 
             util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Description", "gnm5_Description");
             util.CopyAttributeByRel("gnm5_Description", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_Reference Master", "parent_uid", "parent_uid");
@@ -498,8 +497,8 @@ namespace Project1
             Processing();
 
             var paramList = (from rev in util.GetElementsBy("GNM8_CADItemRevision").SearchList
-                    join Dataset in util.GetElementsBy("Dataset").SearchList on (string)rev.Attribute("parent_uid") equals (string)Dataset.Attribute("parent_uid").Value
-                    select new  {rev, Dataset }).ToList();
+                             join Dataset in util.GetElementsBy("Dataset").SearchList on (string)rev.Attribute("parent_uid") equals (string)Dataset.Attribute("parent_uid").Value
+                             select new { rev, Dataset }).ToList();
 
             for (int i = 0; i < paramList.Count(); i++)
             {
@@ -508,13 +507,13 @@ namespace Project1
 
                 string type = (string)dataset.Attribute("object_type").Value;
 
-              
+
                 switch (type)
                 {
                     case "UGMASTER":
                     case "CATProduct":
                     case "CATPart":
-                        rev.SetAttributeValue("gnm8_parameter_code","c");
+                        rev.SetAttributeValue("gnm8_parameter_code", "c");
                         break;
                     case "UGPART":
                     case "CATDrawing":
@@ -535,8 +534,17 @@ namespace Project1
             #endregion
 
             #region Remove Nodes
-            Console.Write("Step 8/10 : Remove Nodes");
+            Console.Write("Step 8/10 : Remove Nodes & Baselines > 6");
             Processing();
+
+            IEnumerable<XElement> listx = from el in util.GetElementsBy("GNM8_CADItemRevision").SearchList
+                                          where el.Attribute("gnm8_major_minor").Value.Contains(".") && el.Attribute("gnm8_major_minor").Value.Count() > 6
+                                          select el;
+
+            foreach (XElement el in listx)
+            {
+                el.Remove();
+            }
 
             util.GetElementsBy("DIAMProductionMaster000").RemoveNodes();
             util.GetElementsBy("DIAMProductionRevMaster000").RemoveNodes();
