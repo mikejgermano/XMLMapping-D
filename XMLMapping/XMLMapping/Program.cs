@@ -173,7 +173,8 @@ namespace Project1
 
         public static void Translate(ref HelperUtility util, String file, string mNewFile, bool PartRenumber)
         {
-
+            XNamespace df = HelperUtility.xmlFile.GetDefaultNamespace();
+            IEnumerable<XElement> releaseStatus;
 
             util.SetFormatting(SaveOptions.None);
 
@@ -192,45 +193,86 @@ namespace Project1
             Processing();
 
             //Production Status Changes
-            util.GetElementsBy("ItemRevision", "object_type", "Production Revision")
-                .Traverse("release_status_list", "ReleaseStatus", "puid")
-                .Filter("name", "Released")
-                .SetAttribute("name", "GNM8_ProductionReleased");
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            where rev.Attribute("object_type").Value == "Production Revision" &&
+                                   (string)status.Attribute("name").Value == "Released"
+                            select status;
 
-            util.GetElementsBy("ItemRevision", "object_type", "Production Revision")
-                .Traverse("release_status_list", "ReleaseStatus", "puid")
-                .Filter("name", "Engineering_Approved")
-                .SetAttribute("name", "GNM8_ProductionReleased");
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_ProductionReleased");
+            }
 
-            util.GetElementsBy("ItemRevision", "object_type", "Production Revision")
-                .Traverse("release_status_list", "ReleaseStatus", "puid")
-                .Filter("name", "EAD_Approved")
-                .SetAttribute("name", "GNM8_ProductionReleased");
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            where rev.Attribute("object_type").Value == "Production Revision" &&
+                                   (string)status.Attribute("name").Value == "Engineering_Approved"
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_ProductionReleased");
+            }
+
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            where rev.Attribute("object_type").Value == "Production Revision" &&
+                                   (string)status.Attribute("name").Value == "EAD_Approved"
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_ProductionReleased");
+            }
 
             //StandardPart
 
-            util.GetElementsBy("ItemRevision", "object_type", "StandardPart Revision")
-               .Traverse("release_status_list", "ReleaseStatus", "puid")
-               .Filter("name", "Released")
-               .SetAttribute("name", "GNM8_ProductionReleased");
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            where rev.Attribute("object_type").Value == "StandardPart Revision" &&
+                                   (string)status.Attribute("name").Value == "Released"
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_ProductionReleased");
+            }
 
             //Partial
-            util.GetElementsBy("ItemRevision", "object_type", "PartialProcMatl Revision")
-               .Traverse("release_status_list", "ReleaseStatus", "puid")
-               .Filter("name", "Released")
-               .SetAttribute("name", "GNM8_ProductionReleased");
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            where rev.Attribute("object_type").Value == "PartialProcMatl Revision" &&
+                                   (string)status.Attribute("name").Value == "Released"
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_ProductionReleased");
+            }
 
             //Prototype Status Changes
-            util.GetElementsBy("ItemRevision", "object_type", "Prototype Revision")
-                .Traverse("release_status_list", "ReleaseStatus", "puid")
-                .Filter("name", "Released")
-                .SetAttribute("name", "GNM8_PrototypeReleased");
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            where rev.Attribute("object_type").Value == "Prototype Revision" &&
+                                   (string)status.Attribute("name").Value == "Released"
+                            select status;
 
-            //Baseline Status Change
-            util.GetElementsBy("ReleaseStatus", "name", "Baseline").SetAttribute("name", "GNM8_Frozen");
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_PrototypeReleased");
+            }
 
             //All Other Status Changes
-            util.AllOtherStatuses();
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            where (string)status.Attribute("name").Value != "GNM8_ProductionReleased" && (string)status.Attribute("name").Value != "GNM8_PrototypeReleased" 
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_Frozen");
+            }
 
 
             WriteLineComplete("Complete");
@@ -270,7 +312,7 @@ namespace Project1
                 el.Attribute("object_name").Value = el.Attribute("object_name").Value.Remove(0, 2);
             }
 
-            
+
             listSd = from form in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "PSBOMViewRevision")
                      where form.Attribute("object_name").Value.Count() > 2 &&
                      form.Attribute("object_name").Value.Substring(0, 2).ToUpper() == "JP"
