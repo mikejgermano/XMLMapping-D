@@ -543,7 +543,7 @@ namespace Project1
 
             foreach (XElement el in listx)
             {
-                el.Remove();
+                el.SetAttributeValue("gnm8_major_minor", "");
             }
 
             util.GetElementsBy("DIAMProductionMaster000").RemoveNodes();
