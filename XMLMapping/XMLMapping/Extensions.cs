@@ -481,8 +481,13 @@ namespace XMLMapping
 
         public void IMANRelSwap()
         {
+            XElement IMAN_manifestation = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_manifestation");
+
+            if (IMAN_manifestation == null)
+                return;
+            
             string IMAN_specificationRef = "#" + GetSingleElementByAttrID("ImanType", "type_name", "IMAN_specification").Attribute("elemId").Value;
-            string IMAN_manifestationRef = "#" + GetSingleElementByAttrID("ImanType", "type_name", "IMAN_manifestation").Attribute("elemId").Value;
+            string IMAN_manifestationRef = "#" + IMAN_manifestation.Attribute("elemId").Value;
             XNamespace df = xmlFile.GetDefaultNamespace();
 
             IEnumerable<XElement> list1 =
