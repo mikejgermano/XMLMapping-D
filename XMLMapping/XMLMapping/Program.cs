@@ -353,7 +353,7 @@ namespace Project1
             util.GetElementsBy("ItemRevision", "object_type", "StandardPart Revision").CopyAttribute("item_revision_id", "gnm8_major_minor");
 
             listSd = from el in HelperUtility.xmlFile.Elements(df + "ItemRevision")
-                     where el.Attribute("object_type").Value != "Reference"
+                     where el.Attribute("object_type").Value != "Reference Revision"
                      select el;
 
             foreach (XElement el in listSd)
