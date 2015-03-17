@@ -150,7 +150,7 @@ namespace Project1
                         string newFile = Path.Combine(@".\Target Mapped XML Files", Path.GetFileNameWithoutExtension(file) + "_Mapped.xml");
 
                         //Method for Translate Instructions
-                        Translate(ref util, file, newFile, isPartRenum(args));
+                        Translate(ref util, file, newFile, false);
 
 
                         //Saves the XML file
@@ -633,8 +633,6 @@ namespace Project1
                         rev.SetAttributeValue("gnm8_parameter_code", "s");
                         break;
                 }
-
-
             }
 
 
@@ -712,6 +710,10 @@ namespace Project1
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
+            #endregion
+
+            #region Other Post Changes
+            util.GetElementsBy("GNM8_CADItemRevision").ToUpperValue("gnm8_issue_no");
             #endregion
 
 
