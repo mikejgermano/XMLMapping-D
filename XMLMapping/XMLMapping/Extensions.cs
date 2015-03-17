@@ -481,26 +481,69 @@ namespace XMLMapping
 
         public void IMANRelSwap()
         {
-            XElement IMAN_manifestation = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_manifestation");
-
-            if (IMAN_manifestation == null)
-                return;
-            
-            string IMAN_specificationRef = "#" + GetSingleElementByAttrID("ImanType", "type_name", "IMAN_specification").Attribute("elemId").Value;
-            string IMAN_manifestationRef = "#" + IMAN_manifestation.Attribute("elemId").Value;
+            IEnumerable<XElement> list1;
             XNamespace df = xmlFile.GetDefaultNamespace();
+            
 
-            IEnumerable<XElement> list1 =
-               from ImanRel in xmlFile.Elements(df + "ImanRelation")
-               join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
-               where (Dataset.Attribute("object_type").Value == "CATDrawing" || Dataset.Attribute("object_type").Value == "UGPART") &&
-                     ImanRel.Attribute("relation_type").Value == IMAN_manifestationRef
-               select ImanRel;
-
-            foreach (XElement el in list1)
+            XElement IMAN_specification = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_specification");
+            if (IMAN_specification != null)
             {
-                el.Attribute("relation_type").SetValue(IMAN_specificationRef);
+                string IMAN_specificationRef = "#" + IMAN_specification.Attribute("elemId").Value;
+               list1 =
+                   from ImanRel in xmlFile.Elements(df + "ImanRelation")
+                   join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
+                   where (Dataset.Attribute("object_type").Value == "CATDrawing"
+                            || Dataset.Attribute("object_type").Value == "UGPART"
+                            || Dataset.Attribute("object_type").Value == "UGMaster"
+                            || Dataset.Attribute("object_type").Value == "CATProduct"
+                            || Dataset.Attribute("object_type").Value == "CATPart"
+                        )
+                   select ImanRel;
+
+                foreach (XElement el in list1)
+                {
+                    el.Attribute("relation_type").SetValue(IMAN_specificationRef);
+                }
             }
+
+           
+            #region CATSHAPE -> catia_alternateShapeRep
+            XElement catia_alternateShapeRep = GetSingleElementByAttrID("ImanType", "type_name", "catia_alternateShapeRep");
+            if (catia_alternateShapeRep != null)
+            {
+                string catia_alternateShapeRepRef = "#" + catia_alternateShapeRep.Attribute("elemId").Value;
+                list1 =
+                from ImanRel in xmlFile.Elements(df + "ImanRelation")
+                join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
+                where Dataset.Attribute("object_type").Value == "CATSHAPE"
+                select ImanRel;
+
+                foreach (XElement el in list1)
+                {
+                    el.Attribute("relation_type").SetValue(catia_alternateShapeRepRef);
+                }
+            }
+            #endregion
+
+
+            #region UGALTREP -> IMAN_UG_altrep
+            XElement IMAN_UG_altrep = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_UG_altrep");
+            if (IMAN_UG_altrep != null)
+            {
+                string IMAN_UG_altrepRef = "#" + IMAN_UG_altrep.Attribute("elemId").Value;
+                list1 =
+                from ImanRel in xmlFile.Elements(df + "ImanRelation")
+                join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
+                where Dataset.Attribute("object_type").Value == "UGALTREP"
+                select ImanRel;
+
+                foreach (XElement el in list1)
+                {
+                    el.Attribute("relation_type").SetValue(IMAN_UG_altrepRef);
+                }
+            }
+            #endregion
+
         }
 
 
