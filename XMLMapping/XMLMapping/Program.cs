@@ -619,19 +619,19 @@ namespace Project1
 
                 switch (type)
                 {
-                    case "UGMASTER":
+                    /*case "UGMASTER":
                     case "CATProduct":
                     case "CATPart":
                         rev.SetAttributeValue("gnm8_parameter_code", "c");
-                        break;
+                        break;*/
                     case "UGPART":
                     case "CATDrawing":
                         rev.SetAttributeValue("gnm8_parameter_code", "d");
                         break;
-                    case "UGALTREP":
+                    /*case "UGALTREP":
                     case "CATShape":
                         rev.SetAttributeValue("gnm8_parameter_code", "s");
-                        break;
+                        break;*/
                 }
             }
 
