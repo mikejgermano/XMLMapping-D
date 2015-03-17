@@ -189,7 +189,7 @@ namespace Project1
             Console.ForegroundColor = ConsoleColor.White;
 
             #region Status Changes
-            Console.Write("Step 1/10 : Status Change");
+            Console.Write("Status Change");
             Processing();
 
             //Production Status Changes
@@ -337,7 +337,7 @@ namespace Project1
             #endregion
 
             #region Change Attribute Names
-            Console.Write("Step 2/10 : Attribute Change");
+            Console.Write("Attribute Change");
             Processing();
 
             util.GetElementsBy("Item", "object_type", "Production").CopyAttribute("item_id", "gnm8_dn_part_number");
@@ -369,7 +369,7 @@ namespace Project1
             if (PartRenumber)
             {
 
-                Console.Write("Step 3/10 : Part Renumbering");
+                Console.Write("Part Renumbering");
 
                 Processing();
                 util.setIndex(RenumIndex);
@@ -380,7 +380,7 @@ namespace Project1
             }
             else
             {
-                Console.Write("Step 3/10 : Part Renumbering");
+                Console.Write("Part Renumbering");
 
                 Processing();
                 //util.setIndex(RenumIndex);
@@ -394,7 +394,7 @@ namespace Project1
             #endregion
 
             #region Uppercase
-            Console.Write("Step 4/10 : Uppercase");
+            Console.Write("Uppercase");
             Processing();
             util.GetElementsBy("Item").ToUpperValue("gnm8_dn_part_number");
             util.GetElementsBy("Item").ToUpperValue("item_id");
@@ -406,7 +406,7 @@ namespace Project1
             #endregion
 
             #region Remove Attributes
-            Console.Write("Step 5/10 : Remove Attributes");
+            Console.Write("Remove Attributes");
             Processing();
 
             util.GetElementsBy("Form", "object_type", "Production Master").RemoveAttribute("data_file");
@@ -423,7 +423,7 @@ namespace Project1
             #endregion
 
             #region Change Object Types and Node Names
-            Console.Write("Step 6/10 : Change Object Types and Node Names");
+            Console.Write("Change Object Types and Node Names");
             Processing();
 
             #region PomStubs
@@ -500,7 +500,7 @@ namespace Project1
             #endregion
 
             #region Move Attribute
-            Console.Write("Step 7/10 : Move Attributes");
+            Console.Write("Move Attributes");
             Processing();
 
             //change attributes on DIAMMaster and GNM8Rev
@@ -602,7 +602,7 @@ namespace Project1
             #endregion
 
             #region ParameterCode
-            Console.Write("Step 7.5/10 : Dataset - add Parameter Code");
+            Console.Write("Dataset - add Parameter Code");
             Processing();
 
             var paramList = (from rev in util.GetElementsBy("GNM8_CADItemRevision").SearchList
@@ -643,7 +643,7 @@ namespace Project1
             #endregion
 
             #region Remove Nodes
-            Console.Write("Step 8/10 : Remove Nodes & Baselines > 6");
+            Console.Write("Remove Nodes & Baselines > 6");
             Processing();
 
             IEnumerable<XElement> listx = from el in util.GetElementsBy("GNM8_CADItemRevision").SearchList
@@ -668,7 +668,7 @@ namespace Project1
             #endregion
 
             #region Relationship Swap
-            Console.Write("Step 9/10 : Relationship Swap");
+            Console.Write("Relationship Swap");
             Processing();
             util.IMANRelSwap();
             WriteLineComplete("Complete");
@@ -676,7 +676,7 @@ namespace Project1
             #endregion
 
             #region Tool Type Change
-            Console.Write("Step 10/10 : Tool Type Change");
+            Console.Write("Tool Type Change");
             Processing();
 
             XElement WordPadNode = util.GetSingleElementByAttrID("Tool", "object_name", "WordPad.exe");
