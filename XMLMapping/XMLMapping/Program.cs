@@ -341,6 +341,18 @@ namespace Project1
                 status.SetAttributeValue("name", "GNM8_PrototypeReleased");
             }
 
+            //any item type owned by PG2, with any status - change to GNM8_Frozen
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
+                            where user.Attribute("user_id").Value.ToUpper() == "PG2"
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_Frozen");
+            }
+
             #endregion
 
 
