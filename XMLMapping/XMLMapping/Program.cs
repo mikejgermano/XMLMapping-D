@@ -263,16 +263,85 @@ namespace Project1
                 status.SetAttributeValue("name", "GNM8_PrototypeReleased");
             }
 
-            //All Other Status Changes
+            #region Status Exceptions
+            
+           
+            /*Production owned by PG3, with a release status before November 2013 - change to GNM8_Frozen
+            DateTime exDate = new DateTime(2013, 11, 1);
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
                             join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            where (string)status.Attribute("name").Value != "GNM8_ProductionReleased" && (string)status.Attribute("name").Value != "GNM8_PrototypeReleased" 
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
+                            where rev.Attribute("object_type").Value == "Production Revision" &&
+                                user.Attribute("user_id").Value.ToUpper().Contains("PG3BCS") &&
+                                (rev.Attribute("date_released").Value != "" && HelperUtility.isDateBefore(rev.Attribute("date_released").Value, exDate))
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_Frozen");
+            }*/
+
+            //Production or Prototype owned by PG1, where prefix does not equal "AA" or "MX" - change to GNM8_Frozen
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
+                            where (rev.Attribute("object_type").Value == "Production Revision" || rev.Attribute("object_type").Value == "Prototype Revision") &&
+                                user.Attribute("user_id").Value.ToUpper() == "PG1" &&
+                                (rev.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "AA" || rev.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "MX")
                             select status;
 
             foreach (XElement status in releaseStatus)
             {
                 status.SetAttributeValue("name", "GNM8_Frozen");
             }
+
+            //Production owned by PG1, where prefix starts with "aw063600-" - change to GNM8_ProductionReleased
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
+                            where rev.Attribute("object_type").Value == "Production Revision" &&
+                                user.Attribute("user_id").Value.ToUpper() == "PG1" &&
+                                rev.Attribute("item_id").Value.Contains("aw063600-")
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_ProductionReleased");
+            }
+
+            //Production or Prototype owned by PG3BCS(1-4), where prefix does not equal "TN" or "MX" or "TD" - change to GNM8_Frozen
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
+                            where (rev.Attribute("object_type").Value == "Production Revision" || rev.Attribute("object_type").Value == "Prototype Revision") &&
+                                user.Attribute("user_id").Value.ToUpper().Contains("PG3BCS") &&
+                                (rev.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "TN"
+                                || rev.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "MX"
+                                || rev.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "TD")
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_Frozen");
+            }
+
+
+
+            //Prototype owned by PG1, where prefix starts with "aw063600-" - change to GNM8_PrototypeReleased
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
+                            where rev.Attribute("object_type").Value == "Prototype Revision" &&
+                                user.Attribute("user_id").Value.ToUpper() == "PG1" &&
+                                rev.Attribute("item_id").Value.Contains("aw063600-")
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_PrototypeReleased");
+            }
+
+            #endregion
 
 
             WriteLineComplete("Complete");

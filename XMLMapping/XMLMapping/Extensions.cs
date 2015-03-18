@@ -479,6 +479,33 @@ namespace XMLMapping
             return newString;
         }
 
+        public static bool isDateBefore(string value,DateTime exDate)
+        {
+            string syear, smonth, sday;
+            int year, month, day;
+            int index;
+
+            index = value.IndexOf("-");
+            syear = value.Substring(0, index);
+            value = value.Remove(0, index + 1);
+            index = value.IndexOf("-");
+            smonth = value.Substring(0, index);
+            value = value.Remove(0, index + 1);
+            index = value.IndexOf("T");
+            sday = value.Substring(0, index);
+
+            int.TryParse(syear,out year);
+            int.TryParse(smonth, out month);
+            int.TryParse(sday, out day);
+
+            DateTime nDate = new DateTime(year, month, day);
+
+            if (nDate < exDate)
+                return true;
+
+            return false;
+        }
+
         public void IMANRelSwap()
         {
             IEnumerable<XElement> list1;
