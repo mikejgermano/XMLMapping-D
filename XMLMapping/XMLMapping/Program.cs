@@ -283,11 +283,12 @@ namespace Project1
 
             //Production or Prototype owned by PG1, where prefix does not equal "AA" or "MX" - change to GNM8_Frozen
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join item in HelperUtility.xmlFile.Elements(df + "Item") on (string)rev.Attribute("parent_uid") equals (string)item.Attribute("puid")
                             join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(0, 1) equals (string)user.Attribute("elemId")
                             where (rev.Attribute("object_type").Value == "Production Revision" || rev.Attribute("object_type").Value == "Prototype Revision") &&
                                 user.Attribute("user_id").Value.ToUpper() == "PG1" &&
-                                (rev.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "AA" || rev.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "MX")
+                                (item.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "AA" && item.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "MX")
                             select status;
 
             foreach (XElement status in releaseStatus)
@@ -297,11 +298,12 @@ namespace Project1
 
             //Production owned by PG1, where prefix starts with "aw063600-" - change to GNM8_ProductionReleased
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join item in HelperUtility.xmlFile.Elements(df + "Item") on (string)rev.Attribute("parent_uid") equals (string)item.Attribute("puid")
                             join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(0, 1) equals (string)user.Attribute("elemId")
                             where rev.Attribute("object_type").Value == "Production Revision" &&
                                 user.Attribute("user_id").Value.ToUpper() == "PG1" &&
-                                rev.Attribute("item_id").Value.Contains("aw063600-")
+                                item.Attribute("item_id").Value.Contains("aw063600-")
                             select status;
 
             foreach (XElement status in releaseStatus)
@@ -311,13 +313,14 @@ namespace Project1
 
             //Production or Prototype owned by PG3BCS(1-4), where prefix does not equal "TN" or "MX" or "TD" - change to GNM8_Frozen
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join item in HelperUtility.xmlFile.Elements(df + "Item") on (string)rev.Attribute("parent_uid") equals (string)item.Attribute("puid")
                             join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(0, 1) equals (string)user.Attribute("elemId")
                             where (rev.Attribute("object_type").Value == "Production Revision" || rev.Attribute("object_type").Value == "Prototype Revision") &&
                                 user.Attribute("user_id").Value.ToUpper().Contains("PG3BCS") &&
-                                (rev.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "TN"
-                                || rev.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "MX"
-                                || rev.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "TD")
+                                (item.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "TN"
+                                && item.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "MX"
+                                && item.Attribute("item_id").Value.ToUpper().Substring(0, 2) != "TD")
                             select status;
 
             foreach (XElement status in releaseStatus)
@@ -329,11 +332,12 @@ namespace Project1
 
             //Prototype owned by PG1, where prefix starts with "aw063600-" - change to GNM8_PrototypeReleased
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join item in HelperUtility.xmlFile.Elements(df + "Item") on (string)rev.Attribute("parent_uid") equals (string)item.Attribute("puid")
                             join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(0, 1) equals (string)user.Attribute("elemId")
                             where rev.Attribute("object_type").Value == "Prototype Revision" &&
                                 user.Attribute("user_id").Value.ToUpper() == "PG1" &&
-                                rev.Attribute("item_id").Value.Contains("aw063600-")
+                                item.Attribute("item_id").Value.Contains("aw063600-")
                             select status;
 
             foreach (XElement status in releaseStatus)
@@ -344,7 +348,7 @@ namespace Project1
             //any item type owned by PG2, with any status - change to GNM8_Frozen
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
                             join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(0, 1) equals (string)user.Attribute("elemId")
                             where user.Attribute("user_id").Value.ToUpper() == "PG2"
                             select status;
 
@@ -361,7 +365,7 @@ namespace Project1
             #endregion
 
             #region Remove JP
-            Console.Write("Step 1.5/10 : Remove JP");
+            Console.Write("Remove JP");
             Processing();
             IEnumerable<XElement> listSd = from item in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Item")
                                            where item.Attribute("item_id").Value.Count() > 2 &&
