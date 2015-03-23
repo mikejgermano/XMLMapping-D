@@ -553,8 +553,8 @@ namespace Project1
             //Reference
             util.GetElementsBy("Item", "object_type", "Reference").SetAttribute("object_type", "GNM5_Reference");
             util.GetElementsBy("ItemRevision", "object_type", "Reference Revision").SetAttribute("object_type", "GNM5_ReferenceRevision");
-            util.GetElementsBy("Form", "object_type", "Reference Master").SetAttribute("object_type", "GNM5_Reference Master");
-            util.GetElementsBy("Form", "object_type", "Reference Revision Master").SetAttribute("object_type", "GNM5_ReferenceRevision Master");
+            //util.GetElementsBy("Form", "object_type", "Reference Master").SetAttribute("object_type", "GNM5_ReferenceMasterS");
+            //util.GetElementsBy("Form", "object_type", "Reference Revision Master").SetAttribute("object_type", "GNM5_ReferenceRevision Master");
 
             util.GetElementsBy("Form", "object_type", "Production Master").SetAttribute("object_type", "GNM8_CADItem Master");
             util.GetElementsBy("Form", "object_type", "Production Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
@@ -578,6 +578,9 @@ namespace Project1
             util.GetElementsBy("Item", "object_type", "GNM5_Reference").RenameNodes("GNM5_Reference");
             util.GetElementsBy("ItemRevision", "object_type", "GNM5_ReferenceRevision").RenameNodes("GNM5_ReferenceRevision");
 
+            util.GetElementsBy("DIAMReferenceMaster000").RenameNodes("GNM5_ReferenceMasterS");
+            util.GetElementsBy("DIAMReferenceRevMaster000").RenameNodes("GNM5_ReferenceRevMasterS");
+
             #endregion
 
             WriteLineComplete("Complete");
@@ -600,11 +603,11 @@ namespace Project1
 
 
             //change attributes on DIAMRefMaster
-            util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Customer", "gnm5_Customer");
-            util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Description", "gnm5_Description");
-            util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Lead_Program", "gnm5_Lead_Program");
-            util.GetElementsBy("DIAMReferenceRevMaster000").RenameAttribute("ECI_Number", "gnm5_ECI_Number");
-            util.GetElementsBy("DIAMReferenceRevMaster000").RenameAttribute("Description", "gnm5_Description");
+            util.GetElementsBy("GNM5_ReferenceMasterS").RenameAttribute("Customer", "gnm5_Customer");
+            util.GetElementsBy("GNM5_ReferenceMasterS").RenameAttribute("Description", "gnm5_Description");
+            util.GetElementsBy("GNM5_ReferenceMasterS").RenameAttribute("Lead_Program", "gnm5_Lead_Program");
+            util.GetElementsBy("GNM5_ReferenceRevMasterS").RenameAttribute("ECI_Number", "gnm5_ECI_Number");
+            util.GetElementsBy("GNM5_ReferenceRevMasterS").RenameAttribute("Description", "gnm5_Description");
 
 
             util.CopyAttributeByRel("gnm8_dn_part_number", "GNM8_CADItem", "GNM8_CADItemRevision", "puid", "parent_uid");
@@ -665,12 +668,12 @@ namespace Project1
                 }
             }
 
-            //REF
+            /*REF
             util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Customer", "gnm5_Customer");
-            util.CopyAttributeByRel("gnm5_Customer", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_Reference Master", "parent_uid", "parent_uid");
+            util.CopyAttributeByRel("gnm5_Customer", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_ReferenceMasterS", "parent_uid", "parent_uid");
 
             util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Description", "gnm5_Description");
-            util.CopyAttributeByRel("gnm5_Description", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_Reference Master", "parent_uid", "parent_uid");
+            util.CopyAttributeByRel("gnm5_Description", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_ReferenceMasterS", "parent_uid", "parent_uid");
 
             util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Lead_Program", "gnm5_Lead_Program");
             util.CopyAttributeByRel("gnm5_Lead_Program", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_Reference Master", "parent_uid", "parent_uid");
@@ -681,7 +684,7 @@ namespace Project1
 
             util.GetElementsBy("DIAMReferenceRevMaster000").RenameAttribute("ECI_Number", "gnm5_ECI_Number");
             util.CopyAttributeByRel("gnm5_ECI_Number", "DIAMReferenceRevMaster000", "", "", "Form", "object_type", "GNM5_ReferenceRevision Master", "parent_uid", "parent_uid");
-
+            */
             WriteLineComplete("Complete");
             Console.WriteLine("");
             #endregion
