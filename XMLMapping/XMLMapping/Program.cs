@@ -425,6 +425,7 @@ namespace Project1
             Console.Write("Attribute Change");
             Processing();
 
+            util.GetElementsBy("Item").ToUpperValue("item_id");
             util.GetElementsBy("Item", "object_type", "Production").CopyAttribute("item_id", "gnm8_dn_part_number");
             util.GetElementsBy("ItemRevision", "object_type", "Production Revision").CopyAttribute("item_revision_id", "gnm8_major_minor");
 
@@ -481,8 +482,7 @@ namespace Project1
             #region Uppercase
             Console.Write("Uppercase");
             Processing();
-            util.GetElementsBy("Item").ToUpperValue("gnm8_dn_part_number");
-            util.GetElementsBy("Item").ToUpperValue("item_id");
+
             util.GetElementsBy("Form").ToUpperValue("object_name");
             util.GetElementsBy("ItemRevision").ToUpperValue("item_revision_id");
             util.GetElementsBy("ItemRevision").ToUpperValue("object_name");
@@ -802,7 +802,12 @@ namespace Project1
 
             #region Other Post Changes
             util.GetElementsBy("GNM8_CADItemRevision").ToUpperValue("gnm8_issue_no");
-            #endregion
+
+            util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItemRevision").SetAttribute("object_class", "GNM8_CADItemRevision");
+            util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItem").SetAttribute("object_class", "GNM8_CADItem");
+            util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItemRevision Master").SetAttribute("object_class", "GNM8_CADItemRevision Master");
+            util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItem Master").SetAttribute("object_class", "GNM8_CADItem Master");
+           #endregion
 
 
             Console.WriteLine("");
