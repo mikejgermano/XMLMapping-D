@@ -204,6 +204,7 @@ namespace Project1
                 status.SetAttributeValue("name", "GNM8_ProductionReleased");
             }
 
+            /*
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
                             join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
                             where rev.Attribute("object_type").Value == "Production Revision" &&
@@ -225,6 +226,7 @@ namespace Project1
             {
                 status.SetAttributeValue("name", "GNM8_ProductionReleased");
             }
+             */
 
             //StandardPart
 
@@ -1023,7 +1025,7 @@ namespace Project1
                     sb.Append(",");
                     sb.Append(Convert.ToByte(item.chars[i]));
                     sb.Append(",");
-                    sb.Append(file.Substring(19, file.Length - 19));
+                    sb.Append(file);
                     sb.AppendLine();
                 }
                 badstringList.Clear();
