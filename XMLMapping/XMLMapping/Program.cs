@@ -7,6 +7,7 @@ using System.Text;
 using System.Xml.Linq;
 using XMLMapping;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Project1
 {
@@ -188,9 +189,67 @@ namespace Project1
 
             Console.ForegroundColor = ConsoleColor.White;
 
+            #region Reference to GNM8
+            Console.Write("Apply Logic for Reference to GNM8");
+            Processing();
+
+            var assemList = (from rev in util.GetElementsBy("ItemRevision", "object_type", "Reference Revision").SearchList
+                             join psOcc in util.GetElementsBy("PSOccurrence").SearchList on (string)rev.Attribute("puid") equals (string)psOcc.Attribute("child_item").Value
+                             join bvrRev in util.GetElementsBy("PSBOMViewRevision").SearchList on (string)psOcc.Attribute("parent_bvr") equals (string)bvrRev.Attribute("puid").Value
+                             join item in util.GetElementsBy("Item").SearchList on (string)bvrRev.Attribute("parent_uid") equals (string)item.Attribute("puid").Value
+                             select rev);
+
+            foreach (XElement rev in assemList)
+            {
+                rev.SetAttributeValue("object_type", "Production Revision");
+            }
+
+
+            WriteLineComplete("Complete");
+            Console.WriteLine("");
+            #endregion
+
             #region Status Changes
             Console.Write("Status Change");
             Processing();
+
+            
+            //Clear release status for Forms
+            IEnumerable<XElement> Forms = from item in HelperUtility.xmlFile.Elements(df + "Form")
+                                          select item;
+
+            releaseStatus = from status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus")
+                            select status;
+
+
+            foreach (XElement form in Forms)
+            {
+                
+                var query = from status in releaseStatus
+                            where form.Attribute("release_status_list").Value.Contains(status.Attribute("puid)").Value)
+                            select status;
+            }
+
+
+           
+
+           
+
+            foreach (XElement status in releaseStatus)
+            {
+                string s;
+            }
+
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "Item")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            where rev.Attribute("object_type").Value == "Production Revision" &&
+                                   (string)status.Attribute("name").Value == "Released"
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.Remove();
+            }
 
             //Production Status Changes
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
@@ -215,6 +274,7 @@ namespace Project1
             {
                 status.SetAttributeValue("name", "GNM8_ProductionReleased");
             }
+             */
 
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
                             join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
@@ -226,7 +286,7 @@ namespace Project1
             {
                 status.SetAttributeValue("name", "GNM8_ProductionReleased");
             }
-             */
+
 
             //StandardPart
 
@@ -265,9 +325,32 @@ namespace Project1
                 status.SetAttributeValue("name", "GNM8_PrototypeReleased");
             }
 
+            //Reference Status Changes
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            where rev.Attribute("object_type").Value == "Reference Revision" &&
+                                   (string)status.Attribute("name").Value == "Released"
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_Frozen");
+            }
+
+            //Baseline Status Changes
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            where (string)status.Attribute("name").Value == "Baseline"
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_Frozen");
+            }
+
             #region Status Exceptions
-            
-           
+
+
             /*Production owned by PG3, with a release status before November 2013 - change to GNM8_Frozen
             DateTime exDate = new DateTime(2013, 11, 1);
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
@@ -313,6 +396,7 @@ namespace Project1
                 status.SetAttributeValue("name", "GNM8_ProductionReleased");
             }
 
+
             //Production or Prototype owned by PG3BCS(1-4), where prefix does not equal "TN" or "MX" or "TD" - change to GNM8_Frozen
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
                             join item in HelperUtility.xmlFile.Elements(df + "Item") on (string)rev.Attribute("parent_uid") equals (string)item.Attribute("puid")
@@ -329,6 +413,24 @@ namespace Project1
             {
                 status.SetAttributeValue("name", "GNM8_Frozen");
             }
+
+            //Production or Prototype owned by PG3BCS(1-4), where prefix equalss "TN" or "MX" or "TD" - change to GNM8_ProductionReleased
+            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
+                            join item in HelperUtility.xmlFile.Elements(df + "Item") on (string)rev.Attribute("parent_uid") equals (string)item.Attribute("puid")
+                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
+                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(0, 1) equals (string)user.Attribute("elemId")
+                            where (rev.Attribute("object_type").Value == "Production Revision" || rev.Attribute("object_type").Value == "Prototype Revision") &&
+                                user.Attribute("user_id").Value.ToUpper().Contains("PG3BCS") &&
+                                (item.Attribute("item_id").Value.ToUpper().Substring(0, 2) == "TN"
+                                && item.Attribute("item_id").Value.ToUpper().Substring(0, 2) == "MX"
+                                && item.Attribute("item_id").Value.ToUpper().Substring(0, 2) == "TD")
+                            select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.SetAttributeValue("name", "GNM8_ProductionReleased");
+            }
+
 
 
 
@@ -731,7 +833,7 @@ namespace Project1
             #endregion
 
             #region Remove Nodes
-            Console.Write("Remove Nodes & Baselines > 6");
+            Console.Write("Remove Nodes & Baselines > 6 and fix temp. 'R' revisions");
             Processing();
 
             IEnumerable<XElement> listx = from el in util.GetElementsBy("GNM8_CADItemRevision").SearchList
@@ -740,7 +842,32 @@ namespace Project1
 
             foreach (XElement el in listx)
             {
-                el.SetAttributeValue("gnm8_major_minor", "");
+                string major_minor = el.Attribute("gnm8_major_minor").Value;
+                int index = major_minor.IndexOf(".");
+                string before = major_minor.Substring(0, index);
+                string after = major_minor.Remove(0, index + 1);
+                el.SetAttributeValue("gnm8_part_name", "BASELINE-" + after + "-" + el.Attribute("gnm8_part_name").Value);
+                el.SetAttributeValue("gnm8_major_minor", before);
+            }
+
+            listx = from el in util.GetElementsBy("GNM8_CADItemRevision").SearchList
+                    where Regex.IsMatch(el.Attribute("gnm8_major_minor").Value, @"(^\d)-(\d\d)R$")
+                    select el;
+
+            foreach (XElement el in listx)
+            {
+                GroupCollection group = Regex.Match(el.Attribute("gnm8_major_minor").Value, @"(^\d)-(\d\d)R$").Groups;
+                el.SetAttributeValue("gnm8_major_minor", group[1].ToString() + "-" + group[2] + "-R");
+            }
+
+            listx = from el in util.GetElementsBy("GNM8_CADItemRevision").SearchList
+                    where Regex.IsMatch(el.Attribute("gnm8_major_minor").Value, @"(^\d)R$")
+                    select el;
+
+            foreach (XElement el in listx)
+            {
+                GroupCollection group = Regex.Match(el.Attribute("gnm8_major_minor").Value, @"(^\d)R$").Groups;
+                el.SetAttributeValue("gnm8_major_minor", group[1].ToString() + "-R");
             }
 
             util.GetElementsBy("DIAMProductionMaster000").RemoveNodes();
@@ -809,7 +936,13 @@ namespace Project1
             util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItem").SetAttribute("object_class", "GNM8_CADItem");
             util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItemRevision Master").SetAttribute("object_class", "GNM8_CADItemRevision Master");
             util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItem Master").SetAttribute("object_class", "GNM8_CADItem Master");
-           #endregion
+
+            util.GetElementsBy("POM_stub", "object_type", "GNM5_Reference").SetAttribute("object_class", "GNM5_Reference");
+            util.GetElementsBy("POM_stub", "object_type", "GNM5_ReferenceRevision").SetAttribute("object_class", "GNM5_ReferenceRevision");
+          
+
+            
+            #endregion
 
 
             Console.WriteLine("");
@@ -1078,6 +1211,8 @@ namespace Project1
 
         private static byte getFileType(string file)
         {
+
+
             if (Directory.Exists(file))
             {
                 return 1;
@@ -1145,4 +1280,6 @@ namespace Project1
 
 
     }
+
+    
 }
