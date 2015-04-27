@@ -175,7 +175,7 @@ namespace Project1
         public static void Translate(ref HelperUtility util, String file, string mNewFile, bool PartRenumber)
         {
             XNamespace df = HelperUtility.xmlFile.GetDefaultNamespace();
-            IEnumerable<XElement> releaseStatus;
+            //IEnumerable<XElement> releaseStatus;
 
             util.SetFormatting(SaveOptions.None);
 
@@ -204,6 +204,17 @@ namespace Project1
                 rev.SetAttributeValue("object_type", "Production Revision");
             }
 
+            assemList = (from rev in util.GetElementsBy("ItemRevision", "object_type", "Reference Revision").SearchList
+                         join psOcc in util.GetElementsBy("PSOccurrence").SearchList on (string)rev.Attribute("puid") equals (string)psOcc.Attribute("child_item").Value
+                         join bvrRev in util.GetElementsBy("PSBOMViewRevision").SearchList on (string)psOcc.Attribute("parent_bvr") equals (string)bvrRev.Attribute("puid").Value
+                         join item in util.GetElementsBy("Item").SearchList on (string)bvrRev.Attribute("parent_uid") equals (string)item.Attribute("puid").Value
+                         select item);
+
+            foreach (XElement item in assemList)
+            {
+                item.SetAttributeValue("object_type", "Production");
+            }
+
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
@@ -213,86 +224,15 @@ namespace Project1
             Console.Write("Status Change");
             Processing();
 
-            
-            //Clear release status for Forms
-            IEnumerable<XElement> Forms = from item in HelperUtility.xmlFile.Elements(df + "Form")
-                                          select item;
-
-            releaseStatus = from status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus")
-                            select status;
-
-
-            foreach (XElement form in Forms)
-            {
-                
-                var query = from status in releaseStatus
-                            where form.Attribute("release_status_list").Value.Contains(status.Attribute("puid)").Value)
-                            select status;
-            }
-
-
-           
-
-           
-
-            foreach (XElement status in releaseStatus)
-            {
-                string s;
-            }
-
-            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "Item")
-                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            where rev.Attribute("object_type").Value == "Production Revision" &&
-                                   (string)status.Attribute("name").Value == "Released"
-                            select status;
-
-            foreach (XElement status in releaseStatus)
-            {
-                status.Remove();
-            }
-
-            //Production Status Changes
-            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
-                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            where rev.Attribute("object_type").Value == "Production Revision" &&
-                                   (string)status.Attribute("name").Value == "Released"
-                            select status;
-
-            foreach (XElement status in releaseStatus)
-            {
-                status.SetAttributeValue("name", "GNM8_ProductionReleased");
-            }
-
             /*
-            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
-                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            where rev.Attribute("object_type").Value == "Production Revision" &&
-                                   (string)status.Attribute("name").Value == "Engineering_Approved"
-                            select status;
+            #region Production Status Changes
 
-            foreach (XElement status in releaseStatus)
-            {
-                status.SetAttributeValue("name", "GNM8_ProductionReleased");
-            }
-             */
+            var releaseList = from status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus")
+                              select status;
 
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
                             join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
                             where rev.Attribute("object_type").Value == "Production Revision" &&
-                                   (string)status.Attribute("name").Value == "EAD_Approved"
-                            select status;
-
-            foreach (XElement status in releaseStatus)
-            {
-                status.SetAttributeValue("name", "GNM8_ProductionReleased");
-            }
-
-
-            //StandardPart
-
-            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
-                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            where rev.Attribute("object_type").Value == "StandardPart Revision" &&
                                    (string)status.Attribute("name").Value == "Released"
                             select status;
 
@@ -300,71 +240,11 @@ namespace Project1
             {
                 status.SetAttributeValue("name", "GNM8_ProductionReleased");
             }
+            #endregion
 
-            //Partial
-            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
-                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            where rev.Attribute("object_type").Value == "PartialProcMatl Revision" &&
-                                   (string)status.Attribute("name").Value == "Released"
-                            select status;
-
-            foreach (XElement status in releaseStatus)
-            {
-                status.SetAttributeValue("name", "GNM8_ProductionReleased");
-            }
-
-            //Prototype Status Changes
-            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
-                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            where rev.Attribute("object_type").Value == "Prototype Revision" &&
-                                   (string)status.Attribute("name").Value == "Released"
-                            select status;
-
-            foreach (XElement status in releaseStatus)
-            {
-                status.SetAttributeValue("name", "GNM8_PrototypeReleased");
-            }
-
-            //Reference Status Changes
-            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
-                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            where rev.Attribute("object_type").Value == "Reference Revision" &&
-                                   (string)status.Attribute("name").Value == "Released"
-                            select status;
-
-            foreach (XElement status in releaseStatus)
-            {
-                status.SetAttributeValue("name", "GNM8_Frozen");
-            }
-
-            //Baseline Status Changes
-            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
-                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            where (string)status.Attribute("name").Value == "Baseline"
-                            select status;
-
-            foreach (XElement status in releaseStatus)
-            {
-                status.SetAttributeValue("name", "GNM8_Frozen");
-            }
 
             #region Status Exceptions
 
-
-            /*Production owned by PG3, with a release status before November 2013 - change to GNM8_Frozen
-            DateTime exDate = new DateTime(2013, 11, 1);
-            releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
-                            join status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus") on (string)rev.Attribute("release_status_list") equals (string)status.Attribute("puid")
-                            join user in HelperUtility.xmlFile.Elements(df + "User") on (string)rev.Attribute("owning_user").Value.Remove(1, 1) equals (string)user.Attribute("elemId")
-                            where rev.Attribute("object_type").Value == "Production Revision" &&
-                                user.Attribute("user_id").Value.ToUpper().Contains("PG3BCS") &&
-                                (rev.Attribute("date_released").Value != "" && HelperUtility.isDateBefore(rev.Attribute("date_released").Value, exDate))
-                            select status;
-
-            foreach (XElement status in releaseStatus)
-            {
-                status.SetAttributeValue("name", "GNM8_Frozen");
-            }*/
 
             //Production or Prototype owned by PG1, where prefix does not equal "AA" or "MX" - change to GNM8_Frozen
             releaseStatus = from rev in HelperUtility.xmlFile.Elements(df + "ItemRevision")
@@ -462,7 +342,15 @@ namespace Project1
             }
 
             #endregion
+            */
 
+            IEnumerable<XElement> releaseStatus = from status in HelperUtility.xmlFile.Elements(df + "ReleaseStatus")
+                                                  select status;
+
+            foreach (XElement status in releaseStatus)
+            {
+                status.Attribute("name").Value = "GNM8_Frozen";
+            }
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
@@ -543,7 +431,11 @@ namespace Project1
             util.GetElementsBy("ItemRevision", "object_type", "StandardPart Revision").CopyAttribute("item_revision_id", "gnm8_major_minor");
 
             listSd = from el in HelperUtility.xmlFile.Elements(df + "ItemRevision")
-                     where el.Attribute("object_type").Value != "Reference Revision"
+                     where
+                     el.Attribute("object_type").Value == "Production Revision" ||
+                      el.Attribute("object_type").Value == "Prototype Revision" ||
+                       el.Attribute("object_type").Value == "PartialProcMatl Revision" ||
+                        el.Attribute("object_type").Value == "StandardPart Revision"
                      select el;
 
             foreach (XElement el in listSd)
@@ -626,8 +518,8 @@ namespace Project1
             util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "StandardPart Revision").SetAttribute("object_type", "GNM8_CADItemRevision");
 
 
-            util.GetElementsBy("POM_stub", "object_class", "Item").Filter("object_type", "Reference").SetAttribute("object_type", "GNM5_Reference");
-            util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "Reference Revision").SetAttribute("object_type", "GNM5_ReferenceRevision");
+            util.GetElementsBy("POM_stub", "object_class", "Item").Filter("object_type", "Reference").SetAttribute("object_type", "GNM8_Reference");
+            util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "Reference Revision").SetAttribute("object_type", "GNM8_ReferenceRevision");
 
             util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Production Master").SetAttribute("object_type", "GNM8_CADItem Master");
             util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Production Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
@@ -655,8 +547,8 @@ namespace Project1
             util.GetElementsBy("ItemRevision", "object_type", "PartialProcMatl Revision").SetAttribute("object_type", "GNM8_CADItemRevision");
 
             //Reference
-            util.GetElementsBy("Item", "object_type", "Reference").SetAttribute("object_type", "GNM5_Reference");
-            util.GetElementsBy("ItemRevision", "object_type", "Reference Revision").SetAttribute("object_type", "GNM5_ReferenceRevision");
+            util.GetElementsBy("Item", "object_type", "Reference").SetAttribute("object_type", "GNM8_Reference");
+            util.GetElementsBy("ItemRevision", "object_type", "Reference Revision").SetAttribute("object_type", "GNM8_ReferenceRevision");
             //util.GetElementsBy("Form", "object_type", "Reference Master").SetAttribute("object_type", "GNM5_ReferenceMasterS");
             //util.GetElementsBy("Form", "object_type", "Reference Revision Master").SetAttribute("object_type", "GNM5_ReferenceRevision Master");
 
@@ -679,11 +571,11 @@ namespace Project1
             util.GetElementsBy("ItemRevision", "object_type", "GNM8_CADItemRevision").RenameNodes("GNM8_CADItemRevision");
 
             //Reference
-            util.GetElementsBy("Item", "object_type", "GNM5_Reference").RenameNodes("GNM5_Reference");
-            util.GetElementsBy("ItemRevision", "object_type", "GNM5_ReferenceRevision").RenameNodes("GNM5_ReferenceRevision");
+            util.GetElementsBy("Item", "object_type", "GNM8_Reference").RenameNodes("GNM8_Reference");
+            util.GetElementsBy("ItemRevision", "object_type", "GNM8_ReferenceRevision").RenameNodes("GNM8_ReferenceRevision");
 
-            util.GetElementsBy("DIAMReferenceMaster000").RenameNodes("GNM5_ReferenceMasterS");
-            util.GetElementsBy("DIAMReferenceRevMaster000").RenameNodes("GNM5_ReferenceRevMasterS");
+            util.GetElementsBy("DIAMReferenceMaster000").RenameNodes("GNM8_ReferenceMasterS");
+            util.GetElementsBy("DIAMReferenceRevMaster000").RenameNodes("GNM8_ReferenceRevMasterS");
 
             #endregion
 
@@ -700,18 +592,18 @@ namespace Project1
             util.GetElementsBy("GNM8_CADItemRevision").RenameAttribute("dia3_Split_Number", "gnm8_Issue_split_no");
             util.GetElementsBy("GNM8_CADItemRevision").RemoveAttribute("dia3_partNumber");
 
-            util.GetElementsBy("GNM5_ReferenceRevision").RemoveAttribute("dia3_NDI_ECI_number");
-            util.GetElementsBy("GNM5_ReferenceRevision").RemoveAttribute("dia3_Split_Number");
-            util.GetElementsBy("GNM5_ReferenceRevision").RemoveAttribute("dia3_partNumber");
+            util.GetElementsBy("GNM8_ReferenceRevision").RemoveAttribute("dia3_NDI_ECI_number");
+            util.GetElementsBy("GNM8_ReferenceRevision").RemoveAttribute("dia3_Split_Number");
+            util.GetElementsBy("GNM8_ReferenceRevision").RemoveAttribute("dia3_partNumber");
 
 
 
             //change attributes on DIAMRefMaster
-            util.GetElementsBy("GNM5_ReferenceMasterS").RenameAttribute("Customer", "gnm5_Customer");
-            util.GetElementsBy("GNM5_ReferenceMasterS").RenameAttribute("Description", "gnm5_Description");
-            util.GetElementsBy("GNM5_ReferenceMasterS").RenameAttribute("Lead_Program", "gnm5_Lead_Program");
-            util.GetElementsBy("GNM5_ReferenceRevMasterS").RenameAttribute("ECI_Number", "gnm5_ECI_Number");
-            util.GetElementsBy("GNM5_ReferenceRevMasterS").RenameAttribute("Description", "gnm5_Description");
+            util.GetElementsBy("GNM8_ReferenceMasterS").RenameAttribute("Customer", "gnm8_Customer");
+            util.GetElementsBy("GNM8_ReferenceMasterS").RenameAttribute("Description", "gnm8_Description");
+            util.GetElementsBy("GNM8_ReferenceMasterS").RenameAttribute("Lead_Program", "gnm8_Lead_Program");
+            util.GetElementsBy("GNM8_ReferenceRevMasterS").RenameAttribute("ECI_Number", "gnm8_ECI_Number");
+            util.GetElementsBy("GNM8_ReferenceRevMasterS").RenameAttribute("Description", "gnm8_Description");
 
 
             util.CopyAttributeByRel("gnm8_dn_part_number", "GNM8_CADItem", "GNM8_CADItemRevision", "puid", "parent_uid");
@@ -937,11 +829,11 @@ namespace Project1
             util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItemRevision Master").SetAttribute("object_class", "GNM8_CADItemRevision Master");
             util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItem Master").SetAttribute("object_class", "GNM8_CADItem Master");
 
-            util.GetElementsBy("POM_stub", "object_type", "GNM5_Reference").SetAttribute("object_class", "GNM5_Reference");
-            util.GetElementsBy("POM_stub", "object_type", "GNM5_ReferenceRevision").SetAttribute("object_class", "GNM5_ReferenceRevision");
-          
+            util.GetElementsBy("POM_stub", "object_type", "GNM8_Reference").SetAttribute("object_class", "GNM8_Reference");
+            util.GetElementsBy("POM_stub", "object_type", "GNM8_ReferenceRevision").SetAttribute("object_class", "GNM8_ReferenceRevision");
 
-            
+
+
             #endregion
 
 
@@ -1281,5 +1173,5 @@ namespace Project1
 
     }
 
-    
+
 }

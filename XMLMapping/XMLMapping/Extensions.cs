@@ -506,6 +506,26 @@ namespace XMLMapping
             return false;
         }
 
+       /* private  getStatusList(string release_list, string[] testList)
+        {
+            string[] statusArray = release_list.Split(',');
+            XNamespace ns = xmlFile.GetDefaultNamespace();
+
+            List<string> statusList = new List<string>();
+            for (int j = 0; j < statusArray.Count(); j++)
+            {
+                string str = statusList[j];
+
+                string status = (from s in xmlFile.Elements(ns + "ReleaseStatus")
+                                 where s.Attribute("puid").Value == str
+                                 select s.Attribute("name").Value).Single();
+
+                statusList.Add(status);
+            }
+
+            return statusList.ToArray();
+        }*/
+
         public void IMANRelSwap()
         {
             IEnumerable<XElement> list1;
