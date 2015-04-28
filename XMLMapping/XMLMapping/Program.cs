@@ -490,14 +490,16 @@ namespace Project1
             Console.Write("Remove Attributes");
             Processing();
 
-            util.GetElementsBy("Form", "object_type", "Production Master").RemoveAttribute("data_file");
+            /*util.GetElementsBy("Form", "object_type", "Production Master").RemoveAttribute("data_file");
             util.GetElementsBy("Form", "object_type", "Production Revision Master").RemoveAttribute("data_file");
             util.GetElementsBy("Form", "object_type", "PartialProcMatl Master").RemoveAttribute("data_file");
             util.GetElementsBy("Form", "object_type", "PartialProcMatl Revision Master").RemoveAttribute("data_file");
             util.GetElementsBy("Form", "object_type", "Prototype Master").RemoveAttribute("data_file");
             util.GetElementsBy("Form", "object_type", "Prototype Revision Master").RemoveAttribute("data_file");
             util.GetElementsBy("Form", "object_type", "Reference Master").RemoveAttribute("data_file");
-            util.GetElementsBy("Form", "object_type", "Reference Revision Master").RemoveAttribute("data_file");
+            util.GetElementsBy("Form", "object_type", "Reference Revision Master").RemoveAttribute("data_file");*/
+
+            util.GetElementsBy("Form").RemoveAttribute("data_file");
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
@@ -703,11 +705,11 @@ namespace Project1
 
                 switch (type)
                 {
-                    /*case "UGMASTER":
+                    case "UGMASTER":
                     case "CATProduct":
                     case "CATPart":
                         rev.SetAttributeValue("gnm8_parameter_code", "c");
-                        break;*/
+                        break;
                     case "UGPART":
                     case "CATDrawing":
                         rev.SetAttributeValue("gnm8_parameter_code", "d");
@@ -832,7 +834,25 @@ namespace Project1
             util.GetElementsBy("POM_stub", "object_type", "GNM8_Reference").SetAttribute("object_class", "GNM8_Reference");
             util.GetElementsBy("POM_stub", "object_type", "GNM8_ReferenceRevision").SetAttribute("object_class", "GNM8_ReferenceRevision");
 
+            //remove dia3 properties
+             listx = from el in HelperUtility.xmlFile.Descendants()
+                     where el.Attribute("dia3_NDI_ECI_number") != null
+                     || el.Attribute("dia3_Split_Number") != null
+                     || el.Attribute("dia3_partNumber") != null
+                    select el;
 
+            foreach (XElement el in listx)
+            {
+                if (el.Attribute("dia3_NDI_ECI_number") != null)
+                    el.Attribute("dia3_NDI_ECI_number").Remove();
+
+                if (el.Attribute("dia3_Split_Number") != null)
+                    el.Attribute("dia3_Split_Number").Remove();
+
+                if (el.Attribute("dia3_partNumber") != null)
+                    el.Attribute("dia3_partNumber").Remove();
+
+            }
 
             #endregion
 
