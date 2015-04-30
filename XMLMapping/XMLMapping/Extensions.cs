@@ -11,6 +11,23 @@ using System.Xml.Linq;
 namespace XMLMapping
 {
 
+    public class ReleaseItem
+    {
+        public string RevID;
+        public string ReleaseID;
+        public string Name;
+        public string OwningGroup;
+
+        public ReleaseItem(string mRevID, string mReleaseID, string mName, string mOwningGroup)
+        {
+            RevID = mRevID;
+            ReleaseID = mReleaseID;
+            Name = mName;
+            OwningGroup = mOwningGroup;
+        }
+
+    }
+
     public class SearchElements
     {
         public List<XElement> SearchList;
@@ -138,82 +155,37 @@ namespace XMLMapping
         /// <param name="TraverseAttrDestination"></param>
         public void CopyAttributeByRel(String AttributeName, String SourceElementName, String DestinationElementName, String TraverseAttrSource, String TraverseAttrDestination)
         {
-            IEnumerable<XElement> result = GetElementsBy(SourceElementName).SearchList;
+            XNamespace ns = xmlFile.GetDefaultNamespace();
+
+            IEnumerable<XElement[]> result = from source in xmlFile.Elements(ns + SourceElementName)
+                                          join dest in xmlFile.Elements(ns + DestinationElementName) on source.Attribute(TraverseAttrSource).Value equals dest.Attribute(TraverseAttrDestination).Value
+                                          select new XElement[2]{source, dest};
+                                          
+            
+            
             if (result.Count() == 0)
             {
 
                 return;
             }
 
-            foreach (XElement el in result)
+            foreach (XElement[] el in result)
             {
-                XAttribute att = el.Attribute(AttributeName);
+               
+                
+                XAttribute att = el[0].Attribute(AttributeName);
                 if (att == null)
                 {
                     continue;
                 }
-                XAttribute travSource = el.Attribute(TraverseAttrSource);
-                if (travSource == null)
-                {
-                    continue;
-                }
-                SearchElements mEls = GetElementsBy(DestinationElementName, TraverseAttrDestination, travSource.Value);
-                if (mEls.SearchList.Count == 0)
-                {
-                    continue;
-                }
+              
+                 el[1].SetAttributeValue(AttributeName, att.Value);
 
-                mEls.SetAttribute(AttributeName, att.Value);
             }
 
         }
 
-        public void CopyAttributeByRel(String AttributeName, String SourceElementName, String SourceAttribute, String SourceVal, String DestinationElementName, String DestAttr, String DestVal, String TraverseAttrSource, String TraverseAttrDestination)
-        {
-            IEnumerable<XElement> result = null;
-            SearchElements mEls = null;
-
-            if (SourceAttribute != "" && SourceVal != "")
-                result = GetElementsBy(SourceElementName, SourceAttribute, SourceVal).SearchList;
-            else
-            {
-                result = GetElementsBy(SourceElementName).SearchList;
-            }
-            if (result.Count() == 0)
-            {
-
-                return;
-            }
-
-            foreach (XElement el in result)
-            {
-                XAttribute att = el.Attribute(AttributeName);
-                if (att == null)
-                {
-                    continue;
-                }
-                XAttribute travSource = el.Attribute(TraverseAttrSource);
-                if (travSource == null)
-                {
-                    continue;
-                }
-                if (DestAttr != "" && DestVal != "")
-                {
-                    mEls = GetElementsBy(DestinationElementName, TraverseAttrDestination, travSource.Value);
-                }
-                else
-                {
-                    mEls = GetElementsBy(DestinationElementName, DestAttr, DestVal).Filter(TraverseAttrDestination, travSource.Value);
-                }
-                if (mEls.SearchList.Count == 0)
-                {
-                    continue;
-                }
-
-                mEls.SetAttribute(AttributeName, att.Value);
-            }
-
-        }
+      
 
 
         /// <summary>
@@ -246,8 +218,7 @@ namespace XMLMapping
         {
             String[] Params = { ElementName };
             IEnumerable<XElement> list1 =
-                  from el in xmlFile.Descendants()
-                  where el.Name.LocalName.Equals(ElementName)
+                  from el in xmlFile.Elements(xmlFile.GetDefaultNamespace() + ElementName)
                   select el;
 
             return new SearchElements(list1.ToList<XElement>(), GetCurrentMethod(), Params);
