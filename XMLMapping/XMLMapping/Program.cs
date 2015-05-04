@@ -477,7 +477,7 @@ namespace Project1
             #region Remove JP & Extra IMAN Rel
             Console.Write("Remove JP & Extra IMAN Rel");
             Processing();
-      
+
             //IMAN Rel remove duplicates
             var ImanRels = from rel in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "ImanRelation")
                            group rel by new
@@ -486,7 +486,7 @@ namespace Project1
                                secondary = rel.Attribute("secondary_object").Value
                            } into rels
                            where rels.Count() > 1
-                           select new Object[2]{new Grouping(rels.Key.primary,rels.Key.secondary, rels),rels.Count()};
+                           select new Object[2] { new Grouping(rels.Key.primary, rels.Key.secondary, rels), rels.Count() };
 
             int count = 1;
             foreach (var el in ImanRels)
@@ -506,17 +506,17 @@ namespace Project1
                 {
                     Grouping g = (Grouping)el[0];
                     g.els.ElementAt<XElement>(count - 1).Remove();
-                   
+
                     count = 1;
                 }
-                
+
             }
 
 
-            IEnumerable<XElement>  listSd = from item in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Item")
-                     where item.Attribute("item_id").Value.Count() > 2 &&
-                     item.Attribute("item_id").Value.Substring(0, 2).ToUpper() == "JP"
-                     select item;
+            IEnumerable<XElement> listSd = from item in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Item")
+                                           where item.Attribute("item_id").Value.Count() > 2 &&
+                                           item.Attribute("item_id").Value.Substring(0, 2).ToUpper() == "JP"
+                                           select item;
 
             foreach (XElement el in listSd)
             {
@@ -924,18 +924,10 @@ namespace Project1
                    el.Name.LocalName == "DIAMTemplateRevMaster000"
                    select el;
 
-            foreach (XElement el in list)
+            foreach (XElement el in list.ToArray())
             {
                 el.Remove();
             }
-
-            /*util.GetElementsBy("DIAMProductionMaster000").RemoveNodes();
-            util.GetElementsBy("DIAMProductionRevMaster000").RemoveNodes();
-            util.GetElementsBy("DIAMReferenceMaster000").RemoveNodes();
-            util.GetElementsBy("DIAMReferenceRevMaster000").RemoveNodes();
-            util.GetElementsBy("DIAMTemplateMaster000").RemoveNodes();
-            util.GetElementsBy("DIAMTemplateRevMaster000").RemoveNodes();*/
-
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
@@ -1039,11 +1031,33 @@ namespace Project1
 
             }
 
-            //trunate values
+            //truncate values
 
-            util.GetElementsBy("GNM8_CADItemRevision").TrimAttributeLength("gnm8_issue_no",12);
+            util.GetElementsBy("GNM8_CADItemRevision").TrimAttributeLength("gnm8_issue_no", 12);
             util.GetElementsBy("GNM8_CADItemRevision").TrimAttributeLength("gnm8_part_name", 40);
-            util.GetElementsBy("GNM8_CADItemRevision").TrimAttributeLength("gnm8_car_model", 6);
+
+            //change car model
+
+            Dictionary<string, string> CarModel = new Dictionary<string, string>();
+
+            CarModel.Add("FIAT 500", "FIAT,500");
+            CarModel.Add("=- (Common)", "Common");
+            CarModel.Add("FIAT DSUV", "FIAT,DSUV");
+            CarModel.Add("051A/071A", "051A,071A");
+            CarModel.Add("JS27/41/49", "JS27,41/49");
+
+            IEnumerable<XElement> carModelList = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
+                                                 where el.Attribute("gnm8_car_model") != null && CarModel.ContainsKey(el.Attribute("gnm8_car_model").Value)
+                                               select el;
+
+            foreach (XElement el in carModelList)
+            {
+                string key = el.Attribute("gnm8_car_model").Value;
+                string newValue = "";
+
+                if (CarModel.TryGetValue(key, out newValue))
+                    el.SetAttributeValue("gnm8_car_model", newValue);
+            }
 
             #endregion
 
