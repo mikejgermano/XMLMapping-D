@@ -10,6 +10,22 @@ using System.Xml.Linq;
 
 namespace XMLMapping
 {
+    public class Grouping
+    {
+        //public IGrouping<string[], XElement> group;
+        //public XElement el;
+        public string primary;
+        public string secondary;
+        public IEnumerable<XElement> els;
+
+        public Grouping(string mprimary, string msecondary, IEnumerable<XElement> o)
+            {
+                primary = mprimary;
+                secondary = msecondary;
+                els = o;
+
+            }
+    }
 
     public class ReleaseItem
     {

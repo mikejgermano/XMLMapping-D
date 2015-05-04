@@ -240,7 +240,7 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
-           
+
             #region Status Changes
             Console.Write("Status Change");
             Processing();
@@ -255,7 +255,7 @@ namespace Project1
                               select new ReleaseItem(revSts.RevID, revSts.ReleaseID, status.Attribute("name").Value, revSts.OwningGroup);
 
             relItemListT = null;
-           
+
             #region Top Level Change
 
 
@@ -339,7 +339,7 @@ namespace Project1
 
 
             #endregion
-            
+
 
             #region Status Exceptions
 
@@ -390,7 +390,7 @@ namespace Project1
                             join relItem in relItemList on status.Attribute("puid").Value equals relItem.ReleaseID
                             join rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision") on relItem.RevID equals rev.Attribute("puid").Value
                             where !status.Attribute("name").Value.StartsWith("GNM8_")
-                            select new Object[3] {status, rev, relItem};
+                            select new Object[3] { status, rev, relItem };
 
 
 
@@ -406,17 +406,17 @@ namespace Project1
 
             #endregion
 
-           
+
             #region change Datasets
 
             var relDatasetListT = from dataset in HelperUtility.xmlFile.Elements(ns + "Dataset")
                                   from datasetSts in dataset.Attribute("release_status_list").Value.Split(',')
-                                  select new Object[2]{dataset.Attribute("puid").Value, datasetSts.ToString()};
+                                  select new Object[2] { dataset.Attribute("puid").Value, datasetSts.ToString() };
 
             var relDatasetList = from datasetSts in relDatasetListT
                                  join dataset in HelperUtility.xmlFile.Elements(ns + "Dataset") on datasetSts[0] equals dataset.Attribute("puid").Value
                                  join status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus") on datasetSts[1] equals status.Attribute("puid").Value
-                                 select new XElement[2] { dataset, status}; 
+                                 select new XElement[2] { dataset, status };
 
 
             relDatasetList.Distinct();
@@ -425,12 +425,12 @@ namespace Project1
                                     join imanRel in HelperUtility.xmlFile.Elements(ns + "ImanRelation") on relDataset[0].Attribute("puid").Value equals imanRel.Attribute("secondary_object").Value
                                     join rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision") on imanRel.Attribute("primary_object").Value equals rev.Attribute("puid").Value
                                     join revSts in relItemList on rev.Attribute("puid").Value equals revSts.RevID
-                                    select new Object[2] {revSts,relDataset};
+                                    select new Object[2] { revSts, relDataset };
 
             foreach (var el in relRevDatasetList)
             {
                 string revStatus = ((ReleaseItem)el[0]).Name;
-                
+
                 XElement dataset = ((XElement[])el[1])[0];
                 XElement status = ((XElement[])el[1])[1];
 
@@ -441,12 +441,12 @@ namespace Project1
 
 
             #endregion
-            
+
 
             #region everthing else
 
             IEnumerable<XElement> list = from el in HelperUtility.xmlFile.Elements()
-                                         where (el.Name.LocalName == "Form" && el.Attribute("release_status_list").Value != "") || (el.Attribute("release_status_list") != null && el.Attribute("release_status_list").Value.Contains(','))  
+                                         where (el.Name.LocalName == "Form" && el.Attribute("release_status_list").Value != "") || (el.Attribute("release_status_list") != null && el.Attribute("release_status_list").Value.Contains(','))
                                          select el;
 
 
@@ -466,21 +466,57 @@ namespace Project1
                 el.SetAttributeValue("name", "GNM8_Frozen");
             }
 
-            #endregion 
+            #endregion
 
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
             #endregion
-           
 
-            #region Remove JP
-            Console.Write("Remove JP");
+
+            #region Remove JP & Extra IMAN Rel
+            Console.Write("Remove JP & Extra IMAN Rel");
             Processing();
-            IEnumerable<XElement> listSd = from item in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Item")
-                                           where item.Attribute("item_id").Value.Count() > 2 &&
-                                           item.Attribute("item_id").Value.Substring(0, 2).ToUpper() == "JP"
-                                           select item;
+      
+            //IMAN Rel remove duplicates
+            var ImanRels = from rel in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "ImanRelation")
+                           group rel by new
+                           {
+                               primary = rel.Attribute("primary_object").Value,
+                               secondary = rel.Attribute("secondary_object").Value
+                           } into rels
+                           where rels.Count() > 1
+                           select new Object[2]{new Grouping(rels.Key.primary,rels.Key.secondary, rels),rels.Count()};
+
+            int count = 1;
+            foreach (var el in ImanRels)
+            {
+                if (count == 1 && count < (int)el[1])
+                {
+                    count++;
+                    continue;
+                }
+                else if (count > 1 && count < (int)el[1])
+                {
+                    Grouping g = (Grouping)el[0];
+                    g.els.ElementAt<XElement>(count - 1).Remove();
+                    count++;
+                }
+                else if (count > 1 && count == (int)el[1])
+                {
+                    Grouping g = (Grouping)el[0];
+                    g.els.ElementAt<XElement>(count - 1).Remove();
+                   
+                    count = 1;
+                }
+                
+            }
+
+
+            IEnumerable<XElement>  listSd = from item in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Item")
+                     where item.Attribute("item_id").Value.Count() > 2 &&
+                     item.Attribute("item_id").Value.Substring(0, 2).ToUpper() == "JP"
+                     select item;
 
             foreach (XElement el in listSd)
             {
@@ -529,6 +565,11 @@ namespace Project1
             }
             WriteLineComplete("Complete");
             Console.WriteLine("");
+
+            #region IMAN
+            #endregion
+
+
             #endregion
 
             #region Change Attribute Names
@@ -1002,7 +1043,7 @@ namespace Project1
 
 
             Console.WriteLine("");
-           
+
 
             Console.WriteLine("-------------------------------------------------------------------");
 
@@ -1343,7 +1384,7 @@ namespace Project1
         #endregion
 
 
-        
+
 
     }
 
