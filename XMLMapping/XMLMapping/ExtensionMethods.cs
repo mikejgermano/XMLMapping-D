@@ -288,7 +288,7 @@ namespace ExtensionMethods
                     return;
                 }
 
-                if (att.Value.Length >= Length)
+                if (att.Value.Length > Length)
                 {
                     att.Value = att.Value.Substring(0, Length);
                 }

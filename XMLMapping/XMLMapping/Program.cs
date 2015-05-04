@@ -1039,6 +1039,12 @@ namespace Project1
 
             }
 
+            //trunate values
+
+            util.GetElementsBy("GNM8_CADItemRevision").TrimAttributeLength("gnm8_issue_no",12);
+            util.GetElementsBy("GNM8_CADItemRevision").TrimAttributeLength("gnm8_part_name", 40);
+            util.GetElementsBy("GNM8_CADItemRevision").TrimAttributeLength("gnm8_car_model", 6);
+
             #endregion
 
 
