@@ -12,18 +12,17 @@ namespace XMLMapping
 {
     public class Grouping
     {
-        //public IGrouping<string[], XElement> group;
-        //public XElement el;
         public string primary;
         public string secondary;
         public IEnumerable<XElement> els;
+        public int count;
 
-        public Grouping(string mprimary, string msecondary, IEnumerable<XElement> o)
+        public Grouping(string mprimary, string msecondary, IEnumerable<XElement> o,int mcount)
             {
                 primary = mprimary;
                 secondary = msecondary;
                 els = o;
-
+                count = mcount;
             }
     }
 

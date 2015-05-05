@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using XMLMapping;
+using System.Threading;
 
 namespace Project1
 {
@@ -19,7 +20,8 @@ namespace Project1
         public static int fileCount = 0;
         public static void Main(string[] args)
         {
-
+            //Timer timer = new Timer(callback, "Some state", TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+           
             startTime = DateTime.Now;
 
 
@@ -178,7 +180,7 @@ namespace Project1
             //IEnumerable<XElement> releaseStatus;
 
             util.SetFormatting(SaveOptions.None);
-
+           
             Console.WriteLine("");
             Console.WriteLine("-------------------------------------------------------------------");
             Console.ForegroundColor = ConsoleColor.White;
@@ -198,20 +200,13 @@ namespace Project1
 
 
 
-            var assemListRev = (from rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision")
+            /*var assemListRev = (from rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision")
                                 join psOcc in HelperUtility.xmlFile.Elements(ns + "PSOccurrence") on rev.Attribute("puid").Value equals psOcc.Attribute("child_item").Value
                                 join bvrRev in HelperUtility.xmlFile.Elements(ns + "PSBOMViewRevision") on psOcc.Attribute("parent_bvr").Value equals bvrRev.Attribute("puid").Value
                                 join item in HelperUtility.xmlFile.Elements(ns + "Item") on bvrRev.Attribute("parent_uid").Value equals item.Attribute("puid").Value
                                 where rev.Attribute("object_type").Value == "Reference Revision" && (item.Attribute("object_type").Value == "Production" || item.Attribute("object_type").Value == "Prototype" || item.Attribute("object_type").Value == "PartialProcMatl" || item.Attribute("object_type").Value == "StandardPart")
                                 select rev).Distinct();
 
-
-            /*assemListRev = (from rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision")
-                               join psOcc in HelperUtility.xmlFile.Elements(ns + "PSOccurrence") on (string)rev.Attribute("puid") equals (string)psOcc.Attribute("child_item").Value
-                               join bvrRev in HelperUtility.xmlFile.Elements(ns + "PSBOMViewRevision") on (string)psOcc.Attribute("parent_bvr") equals (string)bvrRev.Attribute("puid").Value
-                               join item in HelperUtility.xmlFile.Elements(ns + "Item") on (string)bvrRev.Attribute("parent_uid") equals (string)item.Attribute("puid").Value
-                               where rev.Attribute("object_type").Value == "Reference Revision" && rev.Attribute("parent_uid").Value != ""
-                               select rev);*/
 
             foreach (XElement rev in assemListRev)
             {
@@ -232,12 +227,38 @@ namespace Project1
                 item.SetAttributeValue("object_type", "Production");
             }
 
-            string[] assemListIDs = (from el in assemListItem
-                                     select el.Attribute("puid").Value).ToArray();
+            //pom
 
 
-            WriteLineComplete("Complete");
+            assemListRev = (from rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision")
+                            join stub in HelperUtility.xmlFile.Elements(ns + "POM_stub") on rev.Attribute("puid").Value equals stub.Attribute("object_uid").Value    
+                                join psOcc in HelperUtility.xmlFile.Elements(ns + "PSOccurrence") on rev.Attribute("puid").Value equals psOcc.Attribute("child_item").Value
+                                join bvrRev in HelperUtility.xmlFile.Elements(ns + "PSBOMViewRevision") on psOcc.Attribute("parent_bvr").Value equals bvrRev.Attribute("puid").Value
+                                join item in HelperUtility.xmlFile.Elements(ns + "Item") on bvrRev.Attribute("parent_uid").Value equals item.Attribute("puid").Value
+                               
+                                where rev.Attribute("object_type").Value == "Reference Revision" && (item.Attribute("object_type").Value == "Production" || item.Attribute("object_type").Value == "Prototype" || item.Attribute("object_type").Value == "PartialProcMatl" || item.Attribute("object_type").Value == "StandardPart")
+                            select stub).Distinct();
+
+            foreach (XElement stub in assemListRev)
+            {
+                stub.SetAttributeValue("object_type", "Production Revision");
+            }
+
+             assemListItem = from item in HelperUtility.xmlFile.Elements(ns + "Item")
+                             join stub in HelperUtility.xmlFile.Elements(ns + "POM_stub") on item.Attribute("puid").Value equals stub.Attribute("object_uid").Value
+                             where assemListItemIDs.Contains(item.Attribute("puid").Value)
+                             select stub;
+
+            foreach (XElement stub in assemListItem)
+            {
+                stub.SetAttributeValue("object_type", "Production");
+            }*/
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write("Skipped");
+            Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("");
+ 
             #endregion
 
 
@@ -486,32 +507,15 @@ namespace Project1
                                secondary = rel.Attribute("secondary_object").Value
                            } into rels
                            where rels.Count() > 1
-                           select new Object[2] { new Grouping(rels.Key.primary, rels.Key.secondary, rels), rels.Count() };
+                           select new Grouping(rels.Key.primary, rels.Key.secondary, rels.Cast<XElement>(), rels.Count());
 
-            int count = 1;
-            foreach (var el in ImanRels)
+            foreach (Grouping group in ImanRels.ToArray())
             {
-                if (count == 1 && count < (int)el[1])
+                foreach (XElement el in group.els.Skip<XElement>(1))
                 {
-                    count++;
-                    continue;
+                    el.Remove();
                 }
-                else if (count > 1 && count < (int)el[1])
-                {
-                    Grouping g = (Grouping)el[0];
-                    g.els.ElementAt<XElement>(count - 1).Remove();
-                    count++;
-                }
-                else if (count > 1 && count == (int)el[1])
-                {
-                    Grouping g = (Grouping)el[0];
-                    g.els.ElementAt<XElement>(count - 1).Remove();
-
-                    count = 1;
-                }
-
             }
-
 
             IEnumerable<XElement> listSd = from item in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Item")
                                            where item.Attribute("item_id").Value.Count() > 2 &&
@@ -891,7 +895,7 @@ namespace Project1
                 int index = major_minor.IndexOf(".");
                 string before = major_minor.Substring(0, index);
                 string after = major_minor.Remove(0, index + 1);
-                el.SetAttributeValue("gnm8_part_name", "BASELINE-" + after + "-" + el.Attribute("gnm8_part_name").Value);
+                el.SetAttributeValue("gnm8_part_name", "BSL-" + after + "-" + el.Attribute("gnm8_part_name").Value);
                 el.SetAttributeValue("gnm8_major_minor", before);
             }
 
@@ -1048,7 +1052,7 @@ namespace Project1
 
             IEnumerable<XElement> carModelList = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
                                                  where el.Attribute("gnm8_car_model") != null && CarModel.ContainsKey(el.Attribute("gnm8_car_model").Value)
-                                               select el;
+                                                 select el;
 
             foreach (XElement el in carModelList)
             {
@@ -1094,7 +1098,14 @@ namespace Project1
             Console.WriteLine("\t " + desc + " - RunTime: " + elapsedTime);
         }
 
+         private static void callback(object state)
+        {
+             Array values = Enum.GetValues(typeof(ConsoleColor));
+            Random random = new Random();
+            ConsoleColor randomBar = (ConsoleColor)values.GetValue(random.Next(values.Length));
 
+            Console.BackgroundColor = randomBar;
+        }
 
         #region Validation Code
         public static void ValidateData(string file)
