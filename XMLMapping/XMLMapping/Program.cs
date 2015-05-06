@@ -1045,7 +1045,7 @@ namespace Project1
             Dictionary<string, string> CarModel = new Dictionary<string, string>();
 
             CarModel.Add("FIAT 500", "FIAT,500");
-            CarModel.Add("=- (Common)", "Common");
+            CarModel.Add("= - (Common)", "Common");
             CarModel.Add("FIAT DSUV", "FIAT,DSUV");
             CarModel.Add("051A/071A", "051A,071A");
             CarModel.Add("JS27/41/49", "JS27,41/49");
