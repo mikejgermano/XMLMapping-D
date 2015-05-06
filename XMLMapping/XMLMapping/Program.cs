@@ -1039,6 +1039,7 @@ namespace Project1
 
             util.GetElementsBy("GNM8_CADItemRevision").TrimAttributeLength("gnm8_issue_no", 12);
             util.GetElementsBy("GNM8_CADItemRevision").TrimAttributeLength("gnm8_part_name", 40);
+            util.GetElementsBy("GNM8_CADItemRevision").TrimAttributeLength("object_desc", 240);
 
             //change car model
 
