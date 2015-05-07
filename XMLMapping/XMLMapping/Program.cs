@@ -20,7 +20,7 @@ namespace Project1
         public static int fileCount = 0;
         public static void Main(string[] args)
         {
-            callback();
+            ShowTitle();
 
             startTime = DateTime.Now;
 
@@ -1100,7 +1100,7 @@ namespace Project1
             Console.WriteLine("\t " + desc + " - RunTime: " + elapsedTime);
         }
 
-        private static void callback()
+        private static void ShowTitle()
         {
             Console.WriteLine();
             StringBuilder sb = new StringBuilder();
