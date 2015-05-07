@@ -20,9 +20,10 @@ namespace Project1
         public static int fileCount = 0;
         public static void Main(string[] args)
         {
-            //Timer timer = new Timer(callback, "Some state", TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
-           
+            callback();
+
             startTime = DateTime.Now;
+
 
 
             //validate
@@ -180,7 +181,7 @@ namespace Project1
             //IEnumerable<XElement> releaseStatus;
 
             util.SetFormatting(SaveOptions.None);
-           
+
             Console.WriteLine("");
             Console.WriteLine("-------------------------------------------------------------------");
             Console.ForegroundColor = ConsoleColor.White;
@@ -258,7 +259,7 @@ namespace Project1
             Console.Write("Skipped");
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("");
- 
+
             #endregion
 
 
@@ -1099,13 +1100,44 @@ namespace Project1
             Console.WriteLine("\t " + desc + " - RunTime: " + elapsedTime);
         }
 
-         private static void callback(object state)
+        private static void callback()
         {
-             Array values = Enum.GetValues(typeof(ConsoleColor));
-            Random random = new Random();
-            ConsoleColor randomBar = (ConsoleColor)values.GetValue(random.Next(values.Length));
+            Console.WriteLine();
+            StringBuilder sb = new StringBuilder();
 
-            Console.BackgroundColor = randomBar;
+            sb.Clear();
+            #region title2
+
+            Console.BackgroundColor = ConsoleColor.White;
+            Console.ForegroundColor = ConsoleColor.Red;
+
+            sb.AppendLine(@"                                                                               ");
+            sb.AppendLine(@"      //////////        //////////// /////      ///     ///////    /////////   ");
+            sb.AppendLine(@"     ////////////      //////////// //////    ////  //////////   ///      ///  ");
+            sb.AppendLine(@"      ///     ////    ////         ///////  ////  ///////       ///       ///  ");
+            sb.AppendLine(@"     ////     /////  /////////    /// ///// ///   /////////    ///       ///   ");
+            sb.AppendLine(@"    ////    ////    /////////    ////  ///////     ////////   ///       ///    ");
+            sb.AppendLine(@"   /////////////   ////         ////    /////  ////  //////  ///       ///     ");
+            sb.AppendLine(@" ////////////     ///////////  ////     ////   //////////     /////////        ");
+            sb.AppendLine(@"                                                                               ");
+            #endregion
+
+            //for (int i = 0; i < sb.Length; i++)
+            //{
+            //    Console.Write(sb[i]);
+            //    //Thread.Sleep(1);
+            //}
+
+            Console.Write(sb);
+            Console.BackgroundColor = ConsoleColor.Black;
+            Console.ForegroundColor = ConsoleColor.White;
+
+            Console.WriteLine("");
+
+            Console.WriteLine("Created by: Mike Germano");
+            Console.WriteLine("");
+
+            Thread.Sleep(500);
         }
 
         #region Validation Code
