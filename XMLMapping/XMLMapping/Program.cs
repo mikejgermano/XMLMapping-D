@@ -883,11 +883,11 @@ namespace Project1
             #endregion
 
             #region Remove Nodes
-            Console.Write("Remove Nodes & Baselines > 6 and fix temp. 'R' revisions");
+            Console.Write("Remove Nodes & Baselines and fix temp. 'R' revisions");
             Processing();
 
             IEnumerable<XElement> listx = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
-                                          where el.Attribute("gnm8_major_minor").Value.Contains(".") && el.Attribute("gnm8_major_minor").Value.Count() > 6
+                                          where el.Attribute("gnm8_major_minor").Value.Contains(".") //&& el.Attribute("gnm8_major_minor").Value.Count() > 6
                                           select el;
 
             foreach (XElement el in listx)
