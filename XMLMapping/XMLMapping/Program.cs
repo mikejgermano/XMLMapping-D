@@ -192,7 +192,7 @@ namespace Project1
 
             Console.ForegroundColor = ConsoleColor.White;
 
-
+            //Skipped
             #region Reference to GNM8
             Console.Write("Apply Logic for Reference to GNM8");
             Processing();
@@ -262,7 +262,6 @@ namespace Project1
 
             #endregion
 
-
             #region Status Changes
             Console.Write("Status Change");
             Processing();
@@ -274,7 +273,7 @@ namespace Project1
 
             var relItemList = from revSts in relItemListT
                               join status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus") on revSts.ReleaseID equals (string)status.Attribute("puid")
-                              select new ReleaseItem(revSts.RevID, revSts.ReleaseID, status.Attribute("name").Value, revSts.OwningGroup);
+                              select new ReleaseItem(revSts.RevID, revSts.ReleaseID, status.Attribute("full_name").Value, revSts.OwningGroup);
 
             relItemListT = null;
 
@@ -494,7 +493,6 @@ namespace Project1
             WriteLineComplete("Complete");
             Console.WriteLine("");
             #endregion
-
 
             #region Remove JP & Extra IMAN Rel
             Console.Write("Remove JP & Extra IMAN Rel");
@@ -843,6 +841,7 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
+            //Skipped D
             #region ParameterCode
             Console.Write("Dataset - add Parameter Code");
             Processing();
@@ -866,10 +865,10 @@ namespace Project1
                     case "CATPart":
                         rev.SetAttributeValue("gnm8_parameter_code", "c");
                         break;
-                    case "UGPART":
+                    /*case "UGPART":
                     case "CATDrawing":
                         rev.SetAttributeValue("gnm8_parameter_code", "d");
-                        break;
+                        break;*/
                     /*case "UGALTREP":
                     case "CATShape":
                         rev.SetAttributeValue("gnm8_parameter_code", "s");
@@ -938,10 +937,11 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
+            //Skipped
             #region Relationship Swap
             Console.Write("Relationship Swap");
             Processing();
-            util.IMANRelSwap();
+            //util.IMANRelSwap();
             WriteLineComplete("Complete");
             Console.WriteLine("");
             #endregion
