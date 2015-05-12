@@ -185,7 +185,7 @@ namespace Project1
             Console.WriteLine("");
             Console.WriteLine("-------------------------------------------------------------------");
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("Loading File " + file);
+            Console.WriteLine("Loading File " + Path.GetFileNameWithoutExtension(file));
             fileCount++;
             Console.WriteLine("File " + fileCount.ToString() + "/" + totalFiles.ToString());
             Console.WriteLine("");
@@ -273,7 +273,7 @@ namespace Project1
 
             var relItemList = from revSts in relItemListT
                               join status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus") on revSts.ReleaseID equals (string)status.Attribute("puid")
-                              select new ReleaseItem(revSts.RevID, revSts.ReleaseID, status.Attribute("full_name").Value, revSts.OwningGroup);
+                              select new ReleaseItem(revSts.RevID, revSts.ReleaseID, status.Attribute("name").Value, revSts.OwningGroup);
 
             relItemListT = null;
 
@@ -495,26 +495,9 @@ namespace Project1
             #endregion
 
             #region Remove JP & Extra IMAN Rel
-            Console.Write("Remove JP & Extra IMAN Rel");
+            Console.Write("Remove JP");
             Processing();
 
-            //IMAN Rel remove duplicates
-            var ImanRels = from rel in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "ImanRelation")
-                           group rel by new
-                           {
-                               primary = rel.Attribute("primary_object").Value,
-                               secondary = rel.Attribute("secondary_object").Value
-                           } into rels
-                           where rels.Count() > 1
-                           select new Grouping(rels.Key.primary, rels.Key.secondary, rels.Cast<XElement>(), rels.Count());
-
-            foreach (Grouping group in ImanRels.ToArray())
-            {
-                foreach (XElement el in group.els.Skip<XElement>(1))
-                {
-                    el.Remove();
-                }
-            }
 
             IEnumerable<XElement> listSd = from item in HelperUtility.xmlFile.Elements(HelperUtility.xmlFile.GetDefaultNamespace() + "Item")
                                            where item.Attribute("item_id").Value.Count() > 2 &&
@@ -937,11 +920,11 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
-            //Skipped
+         
             #region Relationship Swap
             Console.Write("Relationship Swap");
             Processing();
-            //util.IMANRelSwap();
+            util.IMANRelSwap();
             WriteLineComplete("Complete");
             Console.WriteLine("");
             #endregion

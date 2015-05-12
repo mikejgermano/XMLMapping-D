@@ -492,40 +492,30 @@ namespace XMLMapping
             return false;
         }
 
-       /* private  getStatusList(string release_list, string[] testList)
-        {
-            string[] statusArray = release_list.Split(',');
-            XNamespace ns = xmlFile.GetDefaultNamespace();
-
-            List<string> statusList = new List<string>();
-            for (int j = 0; j < statusArray.Count(); j++)
-            {
-                string str = statusList[j];
-
-                string status = (from s in xmlFile.Elements(ns + "ReleaseStatus")
-                                 where s.Attribute("puid").Value == str
-                                 select s.Attribute("name").Value).Single();
-
-                statusList.Add(status);
-            }
-
-            return statusList.ToArray();
-        }*/
-
         public void IMANRelSwap()
         {
             IEnumerable<XElement> list1;
             XNamespace df = xmlFile.GetDefaultNamespace();
             
-
+            
             XElement IMAN_specification = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_specification");
+            XElement catia_auxiliaryLink = GetSingleElementByAttrID("ImanType", "type_name", "catia_auxiliaryLink");
+            XElement IMAN_external_object_link = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_external_object_link");
+            
             if (IMAN_specification != null)
             {
                 string IMAN_specificationRef = "#" + IMAN_specification.Attribute("elemId").Value;
+                string catia_auxiliaryLinkRef = "#" + catia_auxiliaryLink.Attribute("elemId").Value;
+                string IMAN_external_object_linkRef = "#" + IMAN_external_object_link.Attribute("elemId").Value;
                list1 =
                    from ImanRel in xmlFile.Elements(df + "ImanRelation")
                    join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
-                   where (Dataset.Attribute("object_type").Value == "CATDrawing"
+                   where ( 
+                            (Dataset.Attribute("object_type").Value == "CATDrawing" 
+                                && ImanRel.Attribute("relation_type").Value != catia_auxiliaryLinkRef
+                                && ImanRel.Attribute("relation_type").Value != IMAN_external_object_linkRef
+                            )
+
                             || Dataset.Attribute("object_type").Value == "UGPART"
                             || Dataset.Attribute("object_type").Value == "UGMaster"
                             || Dataset.Attribute("object_type").Value == "CATProduct"
