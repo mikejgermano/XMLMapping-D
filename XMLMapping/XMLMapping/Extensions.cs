@@ -200,9 +200,6 @@ namespace XMLMapping
 
         }
 
-      
-
-
         /// <summary>
         /// Retrieves set of nodes that match the criteria
         /// </summary>
@@ -497,7 +494,6 @@ namespace XMLMapping
             IEnumerable<XElement> list1;
             XNamespace df = xmlFile.GetDefaultNamespace();
             
-            
             XElement IMAN_specification = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_specification");
             XElement catia_auxiliaryLink = GetSingleElementByAttrID("ImanType", "type_name", "catia_auxiliaryLink");
             XElement IMAN_external_object_link = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_external_object_link");
@@ -505,28 +501,28 @@ namespace XMLMapping
             if (IMAN_specification != null)
             {
                 string IMAN_specificationRef = "#" + IMAN_specification.Attribute("elemId").Value;
-                string catia_auxiliaryLinkRef = "#" + catia_auxiliaryLink.Attribute("elemId").Value;
-                string IMAN_external_object_linkRef = "#" + IMAN_external_object_link.Attribute("elemId").Value;
+                string catia_auxiliaryLinkRef = "";
+                string IMAN_external_object_linkRef = "";
+
+                catia_auxiliaryLinkRef = (catia_auxiliaryLink != null) ? "#" + catia_auxiliaryLink.Attribute("elemId").Value : "";
+                IMAN_external_object_linkRef = (IMAN_external_object_link != null) ? "#" + IMAN_external_object_link.Attribute("elemId").Value : "";
+
                list1 =
                    from ImanRel in xmlFile.Elements(df + "ImanRelation")
+                   join Item in xmlFile.Elements(df + "ItemRevision") on (string)ImanRel.Attribute("primary_object") equals (string)Item.Attribute("puid").Value
                    join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
-                   where ( 
-                            (Dataset.Attribute("object_type").Value == "CATDrawing" 
-                                && ImanRel.Attribute("relation_type").Value != catia_auxiliaryLinkRef
-                                && ImanRel.Attribute("relation_type").Value != IMAN_external_object_linkRef
-                            )
-
+                   where Dataset.Attribute("object_type").Value == "CATDrawing" 
                             || Dataset.Attribute("object_type").Value == "UGPART"
                             || Dataset.Attribute("object_type").Value == "UGMaster"
                             || Dataset.Attribute("object_type").Value == "CATProduct"
                             || Dataset.Attribute("object_type").Value == "CATPart"
-                        )
                    select ImanRel;
 
                 foreach (XElement el in list1)
                 {
                     el.Attribute("relation_type").SetValue(IMAN_specificationRef);
                 }
+
             }
 
            
@@ -537,6 +533,7 @@ namespace XMLMapping
                 string catia_alternateShapeRepRef = "#" + catia_alternateShapeRep.Attribute("elemId").Value;
                 list1 =
                 from ImanRel in xmlFile.Elements(df + "ImanRelation")
+                join Item in xmlFile.Elements(df + "ItemRevision") on (string)ImanRel.Attribute("primary_object") equals (string)Item.Attribute("puid").Value
                 join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
                 where Dataset.Attribute("object_type").Value == "CATSHAPE"
                 select ImanRel;
@@ -556,6 +553,7 @@ namespace XMLMapping
                 string IMAN_UG_altrepRef = "#" + IMAN_UG_altrep.Attribute("elemId").Value;
                 list1 =
                 from ImanRel in xmlFile.Elements(df + "ImanRelation")
+                join Item in xmlFile.Elements(df + "ItemRevision") on (string)ImanRel.Attribute("primary_object") equals (string)Item.Attribute("puid").Value
                 join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
                 where Dataset.Attribute("object_type").Value == "UGALTREP"
                 select ImanRel;

@@ -920,7 +920,6 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
-         
             #region Relationship Swap
             Console.Write("Relationship Swap");
             Processing();
