@@ -9,24 +9,27 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using XMLMapping;
 using System.Threading;
+using XMLStorageTypes;
 
 namespace Project1
 {
     class Class1
     {
-        public static ushort RenumIndex = 1;
         public static DateTime startTime;
         public static int totalFiles = 0;
+        public static HashSet<string> BrokenIMANRel = new HashSet<string>();
+        public static HashSet<string> TotalIMAN = new HashSet<string>();
         public static int fileCount = 0;
+
         public static void Main(string[] args)
         {
+            System.Diagnostics.Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
+
             ShowTitle();
 
             startTime = DateTime.Now;
 
-
-
-            //validate
+            #region Clean/Validate
             if (!isValidate(args) && isRemoveBadChars(args))
             {
                 Clean(args);
@@ -130,37 +133,107 @@ namespace Project1
                 }
 
             }
-            else if (args.Length == 0 || (isPartRenum(args) && args.Length == 1))
+            #endregion
+            else if (args.Length == 1 && args[0].ToUpper().StartsWith("-INPUTFILE="))
             {
+                string inputPath = args[0].Remove(0, 11);
+
                 Console.Title = "Denso Mapping Utility";
-                Console.WriteLine("Starting Mapping....");
+
+                  //load config file
+                Config config = new Config(inputPath);
+
 
                 //Get List of XML Files
-                String[] files = Directory.GetFiles(@".\Source XML Files");
+                String[] files = Directory.GetFiles(config.SourcePath);
 
                 if (files.Length == 0)
                 {
-                    Console.WriteLine("The 'Source XML Files' folder is empty.");
+                    Console.WriteLine("The '" + Path.GetDirectoryName(config.SourcePath)  + "' folder is empty.");
                 }
                 else
                 {
+                  
+
+                    //Get Reference to Cad List
+                    dynamic o = HelperUtility.LoadSourceData(config.SourcePath);
+
+                    IEnumerable<Classes.Item> MasterItems = (IEnumerable<Classes.Item>)o.Items;
+                    IEnumerable<Classes.Revision> MasterRevisions = (IEnumerable<Classes.Revision>)o.Revisions;
+
+                    IEnumerable<string> RefItem = ((HashSet<string>)(o.RefCadItems)).ToList();
+                    IEnumerable<string> RefRevs = ((HashSet<string>)(o.RefCadRevisions)).ToList();
+                    Console.WriteLine("Starting Mapping....");
                     foreach (string file in files)
                     {
                         HelperUtility util = new HelperUtility();
+                        util.MasterItems = MasterItems;
+                        util.MasterRevisions = MasterRevisions;
+                        util.RefCadItems = RefItem;
+                        util.RefCadRevs = RefRevs;
                         totalFiles = files.Count();
 
-
                         util.LoadFile(file);
-                        string newFile = Path.Combine(@".\Target Mapped XML Files", Path.GetFileNameWithoutExtension(file) + "_Mapped.xml");
+                        string newFile = Path.Combine(config.TargetPath, Path.GetFileNameWithoutExtension(file) + "_Mapped.xml");
 
                         //Method for Translate Instructions
-                        Translate(ref util, file, newFile, false);
+                        Translate(ref util, file, newFile);
 
 
                         //Saves the XML file
                         util.SaveFile(newFile);
 
                     }
+
+                    string RSIPS = Path.Combine(config.OutputPath,"Release Status IPS Files");
+
+                    if (!Directory.Exists(config.OutputPath))
+                    {
+                        Directory.CreateDirectory(config.OutputPath);
+                        Directory.CreateDirectory(RSIPS);
+                    }
+                    else
+                    {
+                        Directory.Delete(config.OutputPath, true);
+                        Directory.CreateDirectory(config.OutputPath);
+                        Directory.CreateDirectory(RSIPS);
+                    }
+
+                    #region PartRenumberList
+
+                    Console.Write("Generating Part-Renumbering File");
+
+                    Processing();
+                    HelperUtility.GeneratePartRenumFile(config.OutputPath,MasterRevisions);
+                    WriteLineComplete("Complete");
+                    Console.WriteLine("");
+                    #endregion
+
+                    #region Ref->CAD List
+                    #endregion
+
+                    #region ReleaseStatus File
+
+                    Console.Write("Generating ReleaseStatus File");
+
+                    Processing();
+                    HelperUtility.GenerateIPSReleaseStatus(config.MaxSplitIPS, RSIPS, MasterRevisions);
+                    WriteLineComplete("Complete");
+                    Console.WriteLine("");
+
+                    #endregion
+
+                    #region Log File
+
+                    Console.Write("Generating Log File");
+
+                    Processing();
+
+                    HelperUtility.GenerateLog(config.OutputPath,MasterItems, MasterRevisions, RefItem, RefRevs, BrokenIMANRel.Count(), TotalIMAN.Count(), DateTime.Now - startTime);
+                    WriteLineComplete("Complete");
+                    Console.WriteLine("");
+
+                    #endregion
                 }
 
                 Console.WriteLine("");
@@ -173,9 +246,13 @@ namespace Project1
             {
                 Console.WriteLine("Invalid Arugments - Did not process");
             }
+
+            GC.Collect();
         }
 
-        public static void Translate(ref HelperUtility util, String file, string mNewFile, bool PartRenumber)
+
+
+        public static void Translate(ref HelperUtility util, String file, string mNewFile)
         {
             XNamespace ns = HelperUtility.xmlFile.GetDefaultNamespace();
             //IEnumerable<XElement> releaseStatus;
@@ -192,72 +269,52 @@ namespace Project1
 
             Console.ForegroundColor = ConsoleColor.White;
 
-            //Skipped
+
             #region Reference to GNM8
             Console.Write("Apply Logic for Reference to GNM8");
             Processing();
 
-            HashSet<string> assemListItemIDs = new HashSet<string>();
+            //Change Items
 
+            var assemList = from el in HelperUtility.xmlFile.Elements(ns + "ItemRevision")
+                            join assemRev in util.RefCadRevs on el.Attribute("puid").Value equals assemRev
+                            select el;
 
-
-            /*var assemListRev = (from rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision")
-                                join psOcc in HelperUtility.xmlFile.Elements(ns + "PSOccurrence") on rev.Attribute("puid").Value equals psOcc.Attribute("child_item").Value
-                                join bvrRev in HelperUtility.xmlFile.Elements(ns + "PSBOMViewRevision") on psOcc.Attribute("parent_bvr").Value equals bvrRev.Attribute("puid").Value
-                                join item in HelperUtility.xmlFile.Elements(ns + "Item") on bvrRev.Attribute("parent_uid").Value equals item.Attribute("puid").Value
-                                where rev.Attribute("object_type").Value == "Reference Revision" && (item.Attribute("object_type").Value == "Production" || item.Attribute("object_type").Value == "Prototype" || item.Attribute("object_type").Value == "PartialProcMatl" || item.Attribute("object_type").Value == "StandardPart")
-                                select rev).Distinct();
-
-
-            foreach (XElement rev in assemListRev)
+            foreach (XElement el in assemList)
             {
-                rev.SetAttributeValue("object_type", "Production Revision");
-                assemListItemIDs.Add(rev.Attribute("items_tag").Value);
+                el.SetAttributeValue("object_type", "Production Revision");
             }
 
-            assemListItemIDs.Distinct();
+            assemList = from el in HelperUtility.xmlFile.Elements(ns + "Item")
+                        join assemItem in util.RefCadItems on el.Attribute("puid").Value equals assemItem
+                        select el;
 
-
-            var assemListItem = from item in HelperUtility.xmlFile.Elements(ns + "Item")
-                                where assemListItemIDs.Contains(item.Attribute("puid").Value)
-                                select item;
-
-
-            foreach (XElement item in assemListItem)
+            foreach (XElement el in assemList)
             {
-                item.SetAttributeValue("object_type", "Production");
+                el.SetAttributeValue("object_type", "Production");
             }
 
-            //pom
+            assemList = from el in HelperUtility.xmlFile.Elements(ns + "Pom_stub")
+                        join assemRev in util.RefCadRevs on el.Attribute("object_uid").Value equals assemRev
+                        select el;
 
-
-            assemListRev = (from rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision")
-                            join stub in HelperUtility.xmlFile.Elements(ns + "POM_stub") on rev.Attribute("puid").Value equals stub.Attribute("object_uid").Value    
-                                join psOcc in HelperUtility.xmlFile.Elements(ns + "PSOccurrence") on rev.Attribute("puid").Value equals psOcc.Attribute("child_item").Value
-                                join bvrRev in HelperUtility.xmlFile.Elements(ns + "PSBOMViewRevision") on psOcc.Attribute("parent_bvr").Value equals bvrRev.Attribute("puid").Value
-                                join item in HelperUtility.xmlFile.Elements(ns + "Item") on bvrRev.Attribute("parent_uid").Value equals item.Attribute("puid").Value
-                               
-                                where rev.Attribute("object_type").Value == "Reference Revision" && (item.Attribute("object_type").Value == "Production" || item.Attribute("object_type").Value == "Prototype" || item.Attribute("object_type").Value == "PartialProcMatl" || item.Attribute("object_type").Value == "StandardPart")
-                            select stub).Distinct();
-
-            foreach (XElement stub in assemListRev)
+            foreach (XElement el in assemList)
             {
-                stub.SetAttributeValue("object_type", "Production Revision");
+                el.SetAttributeValue("object_type", "Production Revision");
             }
 
-             assemListItem = from item in HelperUtility.xmlFile.Elements(ns + "Item")
-                             join stub in HelperUtility.xmlFile.Elements(ns + "POM_stub") on item.Attribute("puid").Value equals stub.Attribute("object_uid").Value
-                             where assemListItemIDs.Contains(item.Attribute("puid").Value)
-                             select stub;
+            assemList = from el in HelperUtility.xmlFile.Elements(ns + "Pom_stub")
+                        join assemItem in util.RefCadItems on el.Attribute("object_uid").Value equals assemItem
+                        select el;
 
-            foreach (XElement stub in assemListItem)
+            foreach (XElement el in assemList)
             {
-                stub.SetAttributeValue("object_type", "Production");
-            }*/
+                el.SetAttributeValue("object_type", "Production");
+            }
 
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.Write("Skipped");
-            Console.ForegroundColor = ConsoleColor.White;
+
+
+            WriteLineComplete("Complete");
             Console.WriteLine("");
 
             #endregion
@@ -266,208 +323,10 @@ namespace Project1
             Console.Write("Status Change");
             Processing();
 
-            var relItemListT = from rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision")
-                               from revSts in rev.Attribute("release_status_list").Value.Split(',')
-                               join owningGroup in HelperUtility.xmlFile.Elements(ns + "Group") on rev.Attribute("owning_group").Value.Remove(0, 1) equals owningGroup.Attribute("elemId").Value
-                               select new ReleaseItem(rev.Attribute("puid").Value, revSts.ToString(), "", owningGroup.Attribute("full_name").Value);
-
-            var relItemList = from revSts in relItemListT
-                              join status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus") on revSts.ReleaseID equals (string)status.Attribute("puid")
-                              select new ReleaseItem(revSts.RevID, revSts.ReleaseID, status.Attribute("name").Value, revSts.OwningGroup);
-
-            relItemListT = null;
-
-            #region Top Level Change
-
-
-            //Has EAD
-            var releaseStatus = from status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus")
-                                join relItem in relItemList on status.Attribute("puid").Value equals relItem.ReleaseID
-                                join rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision") on relItem.RevID equals rev.Attribute("puid").Value
-                                where rev.Attribute("object_type").Value == "Production Revision" && relItem.Name == "EAD_Approved"
-                                select new Object[3] { status, rev, relItem };
-
-
-
-            foreach (var el in releaseStatus)
-            {
-                XElement status = (XElement)el[0];
-                status.SetAttributeValue("name", "GNM8_ProductionReleased");
-
-                ((XElement)el[1]).SetAttributeValue("release_status_list", status.Attribute("puid").Value);
-
-                ((ReleaseItem)el[2]).Name = "GNM8_ProductionReleased";
-            }
-
-
-            //Has Released for Production/Partial/Standard
-            releaseStatus = from status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus")
-                            join relItem in relItemList on status.Attribute("puid").Value equals relItem.ReleaseID
-                            join rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision") on relItem.RevID equals rev.Attribute("puid").Value
-                            where (rev.Attribute("object_type").Value == "Production Revision" || rev.Attribute("object_type").Value == "PartialProcMatl Revision" || rev.Attribute("object_type").Value == "StandardPart Revision")
-                            && relItem.Name == "Released"
-                            select new Object[3] { status, rev, relItem };
-
-            foreach (var el in releaseStatus)
-            {
-                XElement status = (XElement)el[0];
-                status.SetAttributeValue("name", "GNM8_ProductionReleased");
-
-                ((XElement)el[1]).SetAttributeValue("release_status_list", status.Attribute("puid").Value);
-
-                ((ReleaseItem)el[2]).Name = "GNM8_ProductionReleased";
-            }
-
-
-            //Prototype
-
-            releaseStatus = from status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus")
-                            join relItem in relItemList on status.Attribute("puid").Value equals relItem.ReleaseID
-                            join rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision") on relItem.RevID equals rev.Attribute("puid").Value
-                            where rev.Attribute("object_type").Value == "Prototype Revision" && relItem.Name == "Released"
-                            select new Object[3] { status, rev, relItem };
-
-
-
-            foreach (var el in releaseStatus)
-            {
-                XElement status = (XElement)el[0];
-                status.SetAttributeValue("name", "GNM8_PrototypeReleased");
-
-                ((XElement)el[1]).SetAttributeValue("release_status_list", status.Attribute("puid").Value);
-
-                ((ReleaseItem)el[2]).Name = "GNM8_PrototypeReleased";
-            }
-
-            //Reference and baseline only
-            releaseStatus = from status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus")
-                            join relItem in relItemList on status.Attribute("puid").Value equals relItem.ReleaseID
-                            join rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision") on relItem.RevID equals rev.Attribute("puid").Value
-                            where rev.Attribute("object_type").Value == "Reference Revision" || (!rev.Attribute("release_status_list").Value.Contains(",") && relItem.Name == "Baseline")
-                            select new Object[3] { status, rev, relItem };
-
-
-
-            foreach (var el in releaseStatus)
-            {
-                XElement status = (XElement)el[0];
-                status.SetAttributeValue("name", "GNM8_Frozen");
-
-                ((XElement)el[1]).SetAttributeValue("release_status_list", status.Attribute("puid").Value);
-
-                ((ReleaseItem)el[2]).Name = "GNM8_Frozen";
-            }
-
-
-            #endregion
-
-
-            #region Status Exceptions
-
-
-            //Production or Prototype owned by PG1, where prefix does not equal AA,MX - change to GNM8_Frozen
-            releaseStatus = from status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus")
-                            join relItem in relItemList on status.Attribute("puid").Value equals relItem.ReleaseID
-                            join rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision") on relItem.RevID equals rev.Attribute("puid").Value
-                            join item in HelperUtility.xmlFile.Elements(ns + "Item") on (string)rev.Attribute("items_tag") equals (string)item.Attribute("puid")
-                            where (rev.Attribute("object_type").Value == "Production Revision" || rev.Attribute("object_type").Value == "Prototype Revision") && (relItem.OwningGroup.Contains("PG1") || relItem.OwningGroup.Contains("PG3"))
-                            && (item.Attribute("item_id").Value.Substring(0, 2).ToUpper() != "AA" && item.Attribute("item_id").Value.Substring(0, 2).ToUpper() != "MX" && item.Attribute("item_id").Value.Substring(0, 2).ToUpper() != "TN" && item.Attribute("item_id").Value.Substring(0, 2).ToUpper() != "TD")
-                            select new Object[3] { status, rev, relItem };
-
-
-            foreach (var el in releaseStatus)
-            {
-                XElement status = (XElement)el[0];
-                status.SetAttributeValue("name", "GNM8_Frozen");
-
-                ((XElement)el[1]).SetAttributeValue("release_status_list", status.Attribute("puid").Value);
-
-                ((ReleaseItem)el[2]).Name = "GNM8_Frozen";
-            }
-
-
-            //Anything owned by PG2 change to Frozen
-            releaseStatus = from status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus")
-                            join relItem in relItemList on status.Attribute("puid").Value equals relItem.ReleaseID
-                            join rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision") on relItem.RevID equals rev.Attribute("puid").Value
-                            join item in HelperUtility.xmlFile.Elements(ns + "Item") on (string)rev.Attribute("items_tag") equals (string)item.Attribute("puid")
-                            where relItem.OwningGroup.Contains("PG2")
-                            select new Object[3] { status, rev, relItem };
-
-
-            foreach (var el in releaseStatus)
-            {
-                XElement status = (XElement)el[0];
-                status.SetAttributeValue("name", "GNM8_Frozen");
-
-                ((XElement)el[1]).SetAttributeValue("release_status_list", status.Attribute("puid").Value);
-
-                ((ReleaseItem)el[2]).Name = "GNM8_Frozen";
-            }
-
-            //Everything else Frozen
-
-            releaseStatus = from status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus")
-                            join relItem in relItemList on status.Attribute("puid").Value equals relItem.ReleaseID
-                            join rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision") on relItem.RevID equals rev.Attribute("puid").Value
-                            where !status.Attribute("name").Value.StartsWith("GNM8_")
-                            select new Object[3] { status, rev, relItem };
-
-
-
-            foreach (var el in releaseStatus)
-            {
-                XElement status = (XElement)el[0];
-                status.SetAttributeValue("name", "GNM8_Frozen");
-
-                ((XElement)el[1]).SetAttributeValue("release_status_list", status.Attribute("puid").Value);
-
-                ((ReleaseItem)el[2]).Name = "GNM8_Frozen";
-            }
-
-            #endregion
-
-
-            #region change Datasets
-
-            var relDatasetListT = from dataset in HelperUtility.xmlFile.Elements(ns + "Dataset")
-                                  from datasetSts in dataset.Attribute("release_status_list").Value.Split(',')
-                                  select new Object[2] { dataset.Attribute("puid").Value, datasetSts.ToString() };
-
-            var relDatasetList = from datasetSts in relDatasetListT
-                                 join dataset in HelperUtility.xmlFile.Elements(ns + "Dataset") on datasetSts[0] equals dataset.Attribute("puid").Value
-                                 join status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus") on datasetSts[1] equals status.Attribute("puid").Value
-                                 select new XElement[2] { dataset, status };
-
-
-            relDatasetList.Distinct();
-
-            var relRevDatasetList = from relDataset in relDatasetList
-                                    join imanRel in HelperUtility.xmlFile.Elements(ns + "ImanRelation") on relDataset[0].Attribute("puid").Value equals imanRel.Attribute("secondary_object").Value
-                                    join rev in HelperUtility.xmlFile.Elements(ns + "ItemRevision") on imanRel.Attribute("primary_object").Value equals rev.Attribute("puid").Value
-                                    join revSts in relItemList on rev.Attribute("puid").Value equals revSts.RevID
-                                    select new Object[2] { revSts, relDataset };
-
-            foreach (var el in relRevDatasetList)
-            {
-                string revStatus = ((ReleaseItem)el[0]).Name;
-
-                XElement dataset = ((XElement[])el[1])[0];
-                XElement status = ((XElement[])el[1])[1];
-
-                dataset.SetAttributeValue("release_status_list", status.Attribute("puid").Value);
-
-                status.Attribute("name").Value = revStatus;
-            }
-
-
-            #endregion
-
-
-            #region everthing else
+            #region everthing
 
             IEnumerable<XElement> list = from el in HelperUtility.xmlFile.Elements()
-                                         where (el.Name.LocalName == "Form" && el.Attribute("release_status_list").Value != "") || (el.Attribute("release_status_list") != null && el.Attribute("release_status_list").Value.Contains(','))
+                                         where el.Attribute("release_status_list") != null && el.Attribute("release_status_list").Value != ""
                                          select el;
 
 
@@ -478,7 +337,6 @@ namespace Project1
 
             //change rest of statuses to frozen
             list = from status in HelperUtility.xmlFile.Elements(ns + "ReleaseStatus")
-                   where !status.Attribute("name").Value.StartsWith("GNM8_")
                    select status;
 
 
@@ -590,34 +448,6 @@ namespace Project1
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
-            #endregion
-
-            #region PartRenum
-            if (PartRenumber)
-            {
-
-                Console.Write("Part Renumbering");
-
-                Processing();
-                util.setIndex(RenumIndex);
-                util.PartReNum();
-                RenumIndex = util.getIndex();
-                WriteLineComplete("Complete");
-                Console.WriteLine("");
-            }
-            else
-            {
-                Console.Write("Part Renumbering");
-
-                Processing();
-                //util.setIndex(RenumIndex);
-                //util.PartReNum();
-                //RenumIndex = util.getIndex();
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write("Skipped");
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("");
-            }
             #endregion
 
             #region Uppercase
@@ -824,7 +654,7 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
-            //Skipped D
+           
             #region ParameterCode
             Console.Write("Dataset - add Parameter Code");
             Processing();
@@ -848,10 +678,10 @@ namespace Project1
                     case "CATPart":
                         rev.SetAttributeValue("gnm8_parameter_code", "c");
                         break;
-                    /*case "UGPART":
+                    case "UGPART":
                     case "CATDrawing":
-                        rev.SetAttributeValue("gnm8_parameter_code", "d");
-                        break;*/
+                        dataset.SetAttributeValue("gnm8_parameter_code", "d");
+                        break;
                     /*case "UGALTREP":
                     case "CATShape":
                         rev.SetAttributeValue("gnm8_parameter_code", "s");
@@ -1047,8 +877,53 @@ namespace Project1
                     el.SetAttributeValue("gnm8_car_model", newValue);
             }
 
+
+            //change datasets to custom types
+            list = from dataset in HelperUtility.xmlFile.Elements(ns + "Dataset")
+                   where dataset.Attribute("object_type").Value == "UGPART" || dataset.Attribute("object_type").Value == "CATDrawing"
+                   select dataset;
+
+            foreach (XElement el in list)
+            {
+                string Name = el.Attribute("object_type").Value;
+                el.Name = ns + Name;
+            }
+
+
             #endregion
 
+            #region PartRenum
+
+            Console.Write("Part Renumbering");
+
+            Processing();
+            util.PartReNum();
+            WriteLineComplete("Complete");
+            Console.WriteLine("");
+
+            #endregion
+
+
+            var imans = from iman in HelperUtility.xmlFile.Elements(ns + "ImanRelation")
+                        select iman;
+
+            foreach (var el in imans)
+            {
+                TotalIMAN.Add(el.Attribute("puid").Value);
+            }
+
+            //Find Broken IMAN rels
+            var workingImans = from iman in HelperUtility.xmlFile.Elements(ns + "ImanRelation")
+                               join primary in HelperUtility.xmlFile.Elements().Where(x => x.Attribute("puid") != null) on iman.Attribute("primary_object").Value equals primary.Attribute("puid").Value
+                               join secondary in HelperUtility.xmlFile.Elements().Where(x => x.Attribute("puid") != null) on iman.Attribute("secondary_object").Value equals secondary.Attribute("puid").Value
+                               select iman;
+
+            var brokenImans = imans.Except(workingImans);
+
+            foreach (var el in brokenImans)
+            {
+                BrokenIMANRel.Add(el.Attribute("puid").Value);
+            }
 
             Console.WriteLine("");
 
@@ -1094,7 +969,7 @@ namespace Project1
             Console.ForegroundColor = ConsoleColor.Red;
 
             sb.AppendLine(@"                                                                               ");
-            sb.AppendLine(@"      //////////        //////////// /////      ///     ///////    /////////   ");
+            sb.AppendLine(@"      //////////        //////////// /////      ///     ///////     ////////   ");
             sb.AppendLine(@"     ////////////      //////////// //////    ////  //////////   ///      ///  ");
             sb.AppendLine(@"      ///     ////    ////         ///////  ////  ///////       ///       ///  ");
             sb.AppendLine(@"     ////     /////  /////////    /// ///// ///   /////////    ///       ///   ");
@@ -1116,7 +991,8 @@ namespace Project1
 
             Console.WriteLine("");
 
-            Console.WriteLine("Created by: Mike Germano");
+            Console.WriteLine("Mapping utility created by: Mike Germano");
+            Console.WriteLine("___________________________________________________________________");
             Console.WriteLine("");
 
             Thread.Sleep(500);
@@ -1167,10 +1043,7 @@ namespace Project1
                         }
 
                         writer.Write(reportVErrors(badLines, file));
-
-                        writer.Close();
                     }
-                    reader.Close();
                 }
             }
         }
@@ -1253,7 +1126,6 @@ namespace Project1
                         }
                         writer.Write(Environment.NewLine);
                     }
-                    reader.Close();
                 }
             }
 
@@ -1351,14 +1223,14 @@ namespace Project1
             return false;
         }
 
-        private static bool isPartRenum(string[] args)
-        {
-            if (args.Length == 1 && args[0].ToUpper().Equals("-PARTRENUM"))
-                return true;
+        //private static bool isPartRenum(string[] args)
+        //{
+        //    if (args.Length == 1 && args[0].ToUpper().Equals("-PARTRENUM"))
+        //        return true;
 
 
-            return false;
-        }
+        //    return false;
+        //}
 
         private static byte getFileType(string file)
         {
@@ -1428,9 +1300,6 @@ namespace Project1
             return false;
         }
         #endregion
-
-
-
 
     }
 
