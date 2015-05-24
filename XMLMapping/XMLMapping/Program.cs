@@ -143,6 +143,37 @@ namespace Project1
                   //load config file
                 Config config = new Config(inputPath);
 
+                string RSIPS = Path.Combine(config.OutputPath, "ReleaseStatus_IPS_Files");
+
+                #region Folder Create/Delete
+                if (!Directory.Exists(config.OutputPath))
+                {
+                    Directory.CreateDirectory(config.OutputPath);
+                }
+                else
+                {
+                    Array.ForEach(Directory.GetFiles(config.OutputPath), File.Delete);
+                }
+
+                if (!Directory.Exists(RSIPS))
+                {
+                    Directory.CreateDirectory(RSIPS);
+                }
+                else
+                {
+                    Array.ForEach(Directory.GetFiles(RSIPS), File.Delete);
+                }
+
+                if (!Directory.Exists(config.TargetPath))
+                {
+                    Directory.CreateDirectory(config.TargetPath);
+                }
+                else
+                {
+                    Array.ForEach(Directory.GetFiles(config.TargetPath), File.Delete);
+                }
+                #endregion
+
 
                 //Get List of XML Files
                 String[] files = Directory.GetFiles(config.SourcePath);
@@ -160,10 +191,16 @@ namespace Project1
 
                     IEnumerable<Classes.Item> MasterItems = (IEnumerable<Classes.Item>)o.Items;
                     IEnumerable<Classes.Revision> MasterRevisions = (IEnumerable<Classes.Revision>)o.Revisions;
+                    int TotalDatasets = (int)o.TotalDatasets;
+                    int OrhpanDatasets = (int)o.OrphanDatasets;
 
                     IEnumerable<string> RefItem = ((HashSet<string>)(o.RefCadItems)).ToList();
                     IEnumerable<string> RefRevs = ((HashSet<string>)(o.RefCadRevisions)).ToList();
                     Console.WriteLine("Starting Mapping....");
+
+
+                  
+
                     foreach (string file in files)
                     {
                         HelperUtility util = new HelperUtility();
@@ -185,19 +222,6 @@ namespace Project1
 
                     }
 
-                    string RSIPS = Path.Combine(config.OutputPath,"Release Status IPS Files");
-
-                    if (!Directory.Exists(config.OutputPath))
-                    {
-                        Directory.CreateDirectory(config.OutputPath);
-                        Directory.CreateDirectory(RSIPS);
-                    }
-                    else
-                    {
-                        Directory.Delete(config.OutputPath, true);
-                        Directory.CreateDirectory(config.OutputPath);
-                        Directory.CreateDirectory(RSIPS);
-                    }
 
                     #region PartRenumberList
 
@@ -229,7 +253,7 @@ namespace Project1
 
                     Processing();
 
-                    HelperUtility.GenerateLog(config.OutputPath,MasterItems, MasterRevisions, RefItem, RefRevs, BrokenIMANRel.Count(), TotalIMAN.Count(), DateTime.Now - startTime);
+                    HelperUtility.GenerateLog(config.OutputPath,MasterItems, MasterRevisions, RefItem, TotalDatasets,OrhpanDatasets, RefRevs, BrokenIMANRel.Count(), TotalIMAN.Count(), DateTime.Now - startTime);
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
 

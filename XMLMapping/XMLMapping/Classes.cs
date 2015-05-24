@@ -104,7 +104,7 @@ namespace XMLStorageTypes
             {
                 if (!_datasets.ContainsKey(mPUID))
                 {
-                    _datasets.Add(mPUID, new Dataset(mPUID, mType));
+                    _datasets.Add(mPUID, new Dataset(mPUID, mType,true));
                 }
             }
           
@@ -313,11 +313,13 @@ namespace XMLStorageTypes
         {
             public string PUID;
             public string Type;
+            public bool ParentUID;
         
-            public Dataset(string mPUID,string mType)
+            public Dataset(string mPUID,string mType,bool mParentUID)
             {
                 PUID = mPUID;
                 Type = mType;
+                ParentUID = mParentUID;
             }
         }
 

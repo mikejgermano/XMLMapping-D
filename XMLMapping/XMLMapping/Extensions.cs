@@ -309,6 +309,7 @@ namespace XMLMapping
 
             Dictionary<string, Classes.Item> Items = new Dictionary<string, Classes.Item>();
             Dictionary<string, Classes.Revision> MasterRevisions = new Dictionary<string, Classes.Revision>();
+            Dictionary<string, Classes.Dataset> MasterDatasets = new Dictionary<string, Classes.Dataset>();
 
             string[] files = Directory.GetFiles(path);
             int fileCount = files.Count();
@@ -481,10 +482,17 @@ namespace XMLMapping
                                     reader.MoveToAttribute("object_type");
                                     string object_type = reader.Value;
 
+                                    reader.MoveToAttribute("parent_uid");
+                                    bool parent_uid = (reader.Value == "") ? false : true;
+
                                     reader.MoveToAttribute("puid");
                                     string puid = reader.Value;
 
-                                    Datasets.Add(puid, new Classes.Dataset(puid, object_type));
+
+                                    if(!MasterDatasets.ContainsKey(puid))
+                                    MasterDatasets.Add(puid, new Classes.Dataset(puid, object_type, parent_uid));
+                                    
+                                    Datasets.Add(puid, new Classes.Dataset(puid, object_type, parent_uid));
 
                                     break;
                                 }
@@ -573,7 +581,6 @@ namespace XMLMapping
 
 
 
-
             IEnumerable<Classes.Item> refMasterItems = from item in Items.Values
                                                        where item.ObjectType != "Reference"
                                                        select item;
@@ -586,7 +593,7 @@ namespace XMLMapping
 
             //GenerateIPSReleaseStatus(IPS.ToList());
 
-            return new { Items = Items.Values.Select(x => x), Revisions = MasterRevisions.Values.Select(x => x), RefCadItems = RefCadItems, RefCadRevisions = RefCadRevisions };
+            return new { Items = Items.Values.Select(x => x), Revisions = MasterRevisions.Values.Select(x => x), RefCadItems = RefCadItems, RefCadRevisions = RefCadRevisions, TotalDatasets = MasterDatasets.Count(), OrphanDatasets = MasterDatasets.AsEnumerable().Where(x=>x.Value.ParentUID == false).Count() };
 
         }
 
@@ -832,7 +839,7 @@ namespace XMLMapping
 
         }
 
-        public static void GenerateLog(string path, IEnumerable<Classes.Item> items, IEnumerable<Classes.Revision> revisions, IEnumerable<string> refItem, IEnumerable<string> refIR, int BrokenIMANS, int TotalIMANS, TimeSpan duration)
+        public static void GenerateLog(string path, IEnumerable<Classes.Item> items, IEnumerable<Classes.Revision> revisions, IEnumerable<string> refItem,int TotalDatasets,int OrhpanDatasets, IEnumerable<string> refIR, int BrokenIMANS, int TotalIMANS, TimeSpan duration)
         {
             int totalRevCount = revisions.Count();
             int datasetCount = revisions.AsEnumerable().Sum(o => o.GetDatasets().Count());
@@ -862,14 +869,20 @@ namespace XMLMapping
                 writer.WriteLine("________________________________________________");
                 writer.WriteLine("\tTotal CAD Items                  : " + items.Where(x => x.ObjectType != "Reference").Count());
                 writer.WriteLine("\tTotal CAD Revisions              : " + revisions.Where(x => x.ObjectType != "Reference Revision").Count());
+                writer.WriteLine();
                 writer.WriteLine("\tTotal Reference Items            : " + items.Where(x => x.ObjectType == "Reference").Count());
                 writer.WriteLine("\tTotal Reference Revisions        : " + revisions.Where(x => x.ObjectType == "Reference Revision").Count());
+                writer.WriteLine();
                 writer.WriteLine("\tTotal Referenced Datasets        : " + datasetCount);
-                writer.WriteLine("------------------------------------------------");
+                writer.WriteLine("\tTotal Datasets                   : " + TotalDatasets);
+                writer.WriteLine();
+                //writer.WriteLine("------------------------------------------------");
                 writer.WriteLine("\tTotal Reference -> CAD Items     : " + refItem.Count());
                 writer.WriteLine("\tTotal Reference -> CAD Revisions : " + refIR.Count());
-                writer.WriteLine("\tItems with no revisions          : " + orphanItemCount);
+                writer.WriteLine("Warnings:");
+                writer.WriteLine("\tCAD Items with no revisions      : " + orphanItemCount);
                 writer.WriteLine("\tOrphan Revisions                 : " + revisions.Where(x => x.ItemID == "" && x.ItemTag == "").Count());
+                writer.WriteLine("\tOrphan Datasets                  : " + OrhpanDatasets);
                 writer.WriteLine("Errors:");
                 writer.WriteLine("\tRevisions with missing Items     : " + orhpanRevs);
                 writer.WriteLine("\tBroken IMAN Relations            : " + BrokenIMANS);
