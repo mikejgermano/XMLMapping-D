@@ -479,20 +479,23 @@ namespace XMLMapping
                                 }
                             case "Dataset":
                                 {
+                                    reader.MoveToAttribute("object_name");
+                                    string object_name = reader.Value;
+
                                     reader.MoveToAttribute("object_type");
                                     string object_type = reader.Value;
 
                                     reader.MoveToAttribute("parent_uid");
-                                    bool parent_uid = (reader.Value == "") ? false : true;
+                                    string parent_uid = reader.Value;
 
                                     reader.MoveToAttribute("puid");
                                     string puid = reader.Value;
 
 
-                                    if(!MasterDatasets.ContainsKey(puid))
-                                    MasterDatasets.Add(puid, new Classes.Dataset(puid, object_type, parent_uid));
-                                    
-                                    Datasets.Add(puid, new Classes.Dataset(puid, object_type, parent_uid));
+                                    if (!MasterDatasets.ContainsKey(puid))
+                                        MasterDatasets.Add(puid, new Classes.Dataset(puid, object_type, parent_uid, object_name));
+
+                                    Datasets.Add(puid, new Classes.Dataset(puid, object_type, parent_uid, object_name));
 
                                     break;
                                 }
@@ -511,7 +514,7 @@ namespace XMLMapping
                     Classes.Revision revision = (Classes.Revision)rev[0];
                     Classes.Dataset dataset = (Classes.Dataset)rev[1];
 
-                    revision.AddDataset(dataset.PUID, dataset.Type);
+                    revision.AddDataset(dataset.PUID, dataset.Type,dataset.Name);
                 }
 
 
@@ -593,7 +596,7 @@ namespace XMLMapping
 
             //GenerateIPSReleaseStatus(IPS.ToList());
 
-            return new { Items = Items.Values.Select(x => x), Revisions = MasterRevisions.Values.Select(x => x), RefCadItems = RefCadItems, RefCadRevisions = RefCadRevisions, TotalDatasets = MasterDatasets.Count(), OrphanDatasets = MasterDatasets.AsEnumerable().Where(x=>x.Value.ParentUID == false).Count() };
+            return new { Items = Items.Values.Select(x => x), Revisions = MasterRevisions.Values.Select(x => x), RefCadItems = RefCadItems, RefCadRevisions = RefCadRevisions, Datasets = MasterDatasets.Values.Select(x => x) };
 
         }
 
@@ -645,11 +648,14 @@ namespace XMLMapping
 
         }
 
-        public static void GenerateIPSReleaseStatus(ushort max, string path, IEnumerable<Classes.Revision> revList)
+        public static void GenerateIPSReleaseStatus(ushort max, string path, IEnumerable<Classes.Revision> revList, bool Make)
         {
+            if (!Make)
+                return;
+
             var groups = Split(revList
-                        .Where(r=>r.ItemID != "" && r.ReleaseStatusNames != "")
-                        .Select(r=>string.Join("~", new string[3] { r.ItemID, r.RevID, r.ReleaseStatusNames })).ToList(), max);
+                        .Where(r => r.ItemID != "" && r.ReleaseStatusNames != "")
+                        .Select(r => string.Join("~", new string[3] { r.ItemID, r.RevID, r.ReleaseStatusNames })).ToList(), max);
 
             //var rsArr = (from r in revList
             //             where r.ItemID != "" && r.ReleaseStatusNames != ""
@@ -664,11 +670,78 @@ namespace XMLMapping
 
             //File.WriteAllLines(Path.Combine(path,"ReleaseStatus.txt"), rsArr.ToArray());
 
+        }
+        
+        public static void GenerateErrorRevs(string path, IEnumerable<Classes.Revision> revList, bool Make)
+        {
+            if (!Make)
+                return;
 
+            var revs = (from rev in revList
+                       where rev.ItemID == ""
+                       select string.Join(",",rev.PUID,rev.ItemTag,rev.ItemID,rev.RevID,rev.ObjectType,rev.OwningGroup,rev.CreationDate)).ToList();
+
+
+            revs.Insert(0, "Revision UID,Item UID, Item ID,Revision ID,Object Type,Owning Group,Creation Date");
+
+            File.WriteAllLines(Path.Combine(path, "RevisionErrors.csv"), revs.ToArray());
 
         }
 
-        public static List<List<string>> Split(List<string> source,ushort splitMax)
+        public static void GenerateDatasetFailures(string path, IEnumerable<Classes.Revision> revList, bool Make)
+        {
+            if (!Make)
+                return;
+
+            var datasets = (from rev in revList
+                            where rev.ItemID == ""
+                           from ds in rev.GetDatasets()
+                            select string.Join(",", ds.PUID, ds.ParentUID, ds.Name, ds.Type)).ToList();
+
+
+
+            datasets.Insert(0, "Dataset UID,Parent UID, Name, Type");
+
+            File.WriteAllLines(Path.Combine(path, "DatasetFailures.csv"), datasets.ToArray());
+
+        }
+
+        public static void GenerateOrphanDatasets(string path, IEnumerable<Classes.Dataset> datasetList, bool Make)
+        {
+            if (!Make)
+                return;
+
+            var datasets = (from ds in datasetList
+                            where ds.ParentUID == ""
+                            select string.Join(",",ds.PUID, ds.ParentUID, ds.Name, ds.Type)).ToList();
+
+
+
+            datasets.Insert(0, "Dataset UID,Parent UID, Name, Type");
+
+            File.WriteAllLines(Path.Combine(path, "OrphanDatasets.csv"), datasets.ToArray());
+
+        }
+
+        public static void GenerateRecursiveDatasets(string path, IEnumerable<Classes.Dataset> datasetList, bool Make)
+        {
+            if (!Make)
+                return;
+
+            var datasets = (from ds in datasetList
+                            where ds.ParentUID == ds.PUID
+                            select string.Join(",", ds.PUID, ds.ParentUID, ds.Name, ds.Type)).ToList();
+
+
+
+            datasets.Insert(0, "Dataset UID,Parent UID, Name, Type");
+
+            File.WriteAllLines(Path.Combine(path, "RecursiveDatasets.csv"), datasets.ToArray());
+
+        }
+
+
+        public static List<List<string>> Split(List<string> source, ushort splitMax)
         {
             return source
                 .Select((x, i) => new { Index = i, Value = x })
@@ -781,7 +854,7 @@ namespace XMLMapping
 
             var datasets = from dataset in xmlFile.Elements(xmlFile.GetDefaultNamespace() + "Dataset")
                            join rev in MasterRevisions on dataset.Attribute("parent_uid").Value equals rev.ItemTag
-                           where dataset.Attribute("parent_uid").Value != "" && rev.ItemID != ""
+                           where dataset.Attribute("parent_uid").Value != "" && rev.ItemID != "" && rev.GetDatasets().Select(x => x.PUID).Contains(dataset.Attribute("puid").Value)
                            select new { Dataset = dataset, ItemID = rev.ItemID, RevID = rev.RevID };
 
             foreach (var el in datasets)
@@ -808,7 +881,7 @@ namespace XMLMapping
                             int index = newID.LastIndexOf("_");
                             if (index > -1)
                             {
-                                newID = newID.Substring(0, index) + el.RevID;
+                                newID = newID.Substring(0, index + 1) + el.RevID;
                                 el.Dataset.SetAttributeValue("object_name", newID);
                             }
                             break;
@@ -839,7 +912,7 @@ namespace XMLMapping
 
         }
 
-        public static void GenerateLog(string path, IEnumerable<Classes.Item> items, IEnumerable<Classes.Revision> revisions, IEnumerable<string> refItem,int TotalDatasets,int OrhpanDatasets, IEnumerable<string> refIR, int BrokenIMANS, int TotalIMANS, TimeSpan duration)
+        public static void GenerateLog(string path, IEnumerable<Classes.Item> items, IEnumerable<Classes.Revision> revisions, IEnumerable<string> refItem, int TotalDatasets, int OrphanDatasets,int RecursiveDatasets, IEnumerable<string> refIR, int BrokenIMANS, int TotalIMANS, TimeSpan duration, bool Report)
         {
             int totalRevCount = revisions.Count();
             int datasetCount = revisions.AsEnumerable().Sum(o => o.GetDatasets().Count());
@@ -852,19 +925,27 @@ namespace XMLMapping
 
             int faildatasets = revisions.AsEnumerable().Where(x => x.ItemID == "" && x.ItemTag != "").Sum(o => o.GetDatasets().Count());
 
-            int orhpanRevs = revisions.Where(x => x.ItemID == "" && x.ItemTag != "").Count();
+            int orphanRevs = revisions.Where(x => x.ItemID == "" && x.ItemTag != "").Count();
 
-            int percent = Convert.ToInt32((datasetCount - faildatasets + totalRevCount - orhpanRevs + TotalIMANS - BrokenIMANS) * 1.0f / (totalRevCount + TotalIMANS + datasetCount) * 100);
+            int percent = Convert.ToInt32((datasetCount - faildatasets + totalRevCount - orphanRevs + TotalIMANS - BrokenIMANS) * 1.0f / (totalRevCount + TotalIMANS + datasetCount) * 100);
 
             // int percent = Convert.ToInt32((1 - ((orhpanRevs + BrokenIMANS) * 1.0f / (revisions.Count() + TotalIMANS))) * 100);
 
             using (StreamWriter writer = new StreamWriter(Path.Combine(path, "Mapping.log"), false))
             {
                 writer.WriteLine("Log created on " + DateTime.Now);
+                if (!Report)
+                { 
                 writer.WriteLine("Mapping duration - " + duration.Hours.ToString("00") + ":" + duration.Minutes.ToString("00") + ":" + duration.Seconds.ToString("00"));
                 writer.WriteLine();
                 writer.WriteLine("\t[Maximum Data Import : " + percent + "%]");
                 writer.WriteLine();
+                }
+                else
+                {
+                    writer.WriteLine("Report duration - " + duration.Hours.ToString("00") + ":" + duration.Minutes.ToString("00") + ":" + duration.Seconds.ToString("00"));
+                    writer.WriteLine();
+                }
                 writer.WriteLine("\t\tPost Mapping");
                 writer.WriteLine("________________________________________________");
                 writer.WriteLine("\tTotal CAD Items                  : " + items.Where(x => x.ObjectType != "Reference").Count());
@@ -880,11 +961,13 @@ namespace XMLMapping
                 writer.WriteLine("\tTotal Reference -> CAD Items     : " + refItem.Count());
                 writer.WriteLine("\tTotal Reference -> CAD Revisions : " + refIR.Count());
                 writer.WriteLine("Warnings:");
+                writer.WriteLine("\tRecursive Datasets               : " + RecursiveDatasets);
                 writer.WriteLine("\tCAD Items with no revisions      : " + orphanItemCount);
                 writer.WriteLine("\tOrphan Revisions                 : " + revisions.Where(x => x.ItemID == "" && x.ItemTag == "").Count());
-                writer.WriteLine("\tOrphan Datasets                  : " + OrhpanDatasets);
+                writer.WriteLine("\tOrphan Datasets                  : " + OrphanDatasets);
                 writer.WriteLine("Errors:");
-                writer.WriteLine("\tRevisions with missing Items     : " + orhpanRevs);
+                writer.WriteLine("\tRevisions with missing Items     : " + orphanRevs);
+                if(!Report)
                 writer.WriteLine("\tBroken IMAN Relations            : " + BrokenIMANS);
                 writer.WriteLine("\tDataset failures                 : " + faildatasets);
                 writer.WriteLine("------------------------------------------------");
@@ -918,8 +1001,12 @@ namespace XMLMapping
             }
         }
 
-        internal static void GeneratePartRenumFile(string path, IEnumerable<Classes.Revision> MasterRevs)
+        internal static void GeneratePartRenumFile(string path, IEnumerable<Classes.Revision> MasterRevs, bool Make)
         {
+
+            if (!Make)
+                return;
+
             var list = from el in MasterRevs
                        where el.ObjectType != "Reference Revision"
                        select string.Join(",", el.ItemTag, el.PUID, el.ItemID, el.RevID);

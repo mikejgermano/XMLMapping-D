@@ -14,6 +14,17 @@ namespace XMLStorageTypes
         public string TargetPath;
         public string OutputPath;
         public ushort MaxSplitIPS;
+        public HashSet<FilesEnum> Reports = new HashSet<FilesEnum>();
+
+        public enum FilesEnum
+        {
+            ReleaseStatusIPS,
+            ItemRenum,
+            MissingItems,
+            DatasetFailures,
+            OrphanDatasets,
+            RecursiveDatasets
+        }
 
         public Config(string path)
         {
@@ -23,6 +34,49 @@ namespace XMLStorageTypes
             TargetPath = (config.Descendants("TargetFiles").Single().Attribute("path").Value == "") ? null : config.Descendants("TargetFiles").Single().Attribute("path").Value;
             OutputPath = (config.Descendants("OutputFiles").Single().Attribute("path").Value == "") ? null : config.Descendants("OutputFiles").Single().Attribute("path").Value;
             MaxSplitIPS = ushort.Parse((config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value);
+
+            #region Report Files
+
+
+            if (config.Descendants("ReleaseStatusIPS").Single().Attribute("make").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.ReleaseStatusIPS);
+            }
+
+            if (config.Descendants("ItemRenum").Single().Attribute("make").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.ItemRenum);
+            }
+
+
+            if (config.Descendants("MissingItems").Single().Attribute("make").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.MissingItems);
+            }
+
+            if (config.Descendants("DatasetFailures").Single().Attribute("make").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.DatasetFailures);
+            }
+
+            if (config.Descendants("OrphanDatasets").Single().Attribute("make").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.OrphanDatasets);
+            }
+
+            if (config.Descendants("RecursiveDatasets").Single().Attribute("make").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.RecursiveDatasets);
+            }
+            #endregion
+        }
+
+        public bool IsMade(FilesEnum item)
+        {
+            if (Reports.Contains(item))
+                return true;
+
+            return false;
         }
     }
 
@@ -100,11 +154,11 @@ namespace XMLStorageTypes
             }
 
 
-            public void AddDataset(string mPUID,string mType)
+            public void AddDataset(string mPUID,string mType,string mName)
             {
                 if (!_datasets.ContainsKey(mPUID))
                 {
-                    _datasets.Add(mPUID, new Dataset(mPUID, mType,true));
+                    _datasets.Add(mPUID, new Dataset(mPUID, mType, this.ItemTag, mName));
                 }
             }
           
@@ -313,13 +367,15 @@ namespace XMLStorageTypes
         {
             public string PUID;
             public string Type;
-            public bool ParentUID;
+            public string ParentUID;
+            public string Name;
         
-            public Dataset(string mPUID,string mType,bool mParentUID)
+            public Dataset(string mPUID,string mType,string mParentUID,string mName)
             {
                 PUID = mPUID;
                 Type = mType;
                 ParentUID = mParentUID;
+                Name = mName;
             }
         }
 
