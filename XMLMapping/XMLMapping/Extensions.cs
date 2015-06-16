@@ -522,7 +522,7 @@ namespace XMLMapping
                                    join psOcc in PSOccurrence on rev.PUID equals psOcc.Attribute("child_item").Value
                                    join bvrRev in PSBOMViewRevision on psOcc.Attribute("parent_bvr").Value equals bvrRev.Attribute("puid").Value
                                    join item in ItemInstances.Values on bvrRev.Attribute("parent_uid").Value equals item.PUID
-                                   where rev.ObjectType == "Reference Revision" && item.ObjectType == "Production" || item.ObjectType == "Prototype" || item.ObjectType == "PartialProcMatl" || item.ObjectType == "StandardPart"
+                                   where rev.ObjectType == "Reference Revision" && (item.ObjectType == "Production" || item.ObjectType == "Prototype" || item.ObjectType == "PartialProcMatl" || item.ObjectType == "StandardPart")
                                    select rev;
 
 
@@ -581,8 +581,6 @@ namespace XMLMapping
             {
                 rev.Map();
             }
-
-
 
             IEnumerable<Classes.Item> refMasterItems = from item in Items.Values
                                                        where item.ObjectType != "Reference"
@@ -655,7 +653,7 @@ namespace XMLMapping
 
             var groups = Split(revList
                         .Where(r => r.ItemID != "" && r.ReleaseStatusNames != "")
-                        .Select(r => string.Join("~", new string[3] { r.ItemID, r.RevID, r.ReleaseStatusNames })).ToList(), max);
+                        .Select(r => string.Join("~", new string[3] { r.ItemID, r.RevID, r.ReleaseStatusNames})).ToList(), max);
 
             //var rsArr = (from r in revList
             //             where r.ItemID != "" && r.ReleaseStatusNames != ""
@@ -722,6 +720,20 @@ namespace XMLMapping
             File.WriteAllLines(Path.Combine(path, "OrphanDatasets.csv"), datasets.ToArray());
 
         }
+
+        public static void GenerateRevisionImport(string path, IEnumerable<Classes.Revision> revisionList, bool Make)
+        {
+            if (!Make)
+                return;
+
+            var revisions = (from rev in revisionList
+                            select string.Join(",", rev.PUID, rev.ItemID, rev.RevID, rev.ObjectType, rev.OwningGroup, rev.ReleaseStatusNames)).ToList();
+
+            revisions.Insert(0, "PUID,ItemID,RevID,Old_ObjectType,OwningGroup,ReleaseStatus");
+
+            File.WriteAllLines(Path.Combine(path, "RevisionImport.csv"), revisions.ToArray());
+        }
+
 
         public static void GenerateRecursiveDatasets(string path, IEnumerable<Classes.Dataset> datasetList, bool Make)
         {

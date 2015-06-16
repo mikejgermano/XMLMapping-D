@@ -29,7 +29,7 @@ namespace Project1
 
             startTime = DateTime.Now;
 
-            
+
 
             #region Clean/Validate
             if (!isValidate(args) && isRemoveBadChars(args))
@@ -142,7 +142,7 @@ namespace Project1
 
                 Console.Title = "Denso Mapping Utility";
 
-                  //load config file
+                //load config file
                 Config config = new Config(inputPath);
 
                 string RSIPS = Path.Combine(config.OutputPath, "ReleaseStatus_IPS_Files");
@@ -182,11 +182,11 @@ namespace Project1
 
                 if (files.Length == 0)
                 {
-                    Console.WriteLine("The '" + Path.GetDirectoryName(config.SourcePath)  + "' folder is empty.");
+                    Console.WriteLine("The '" + Path.GetDirectoryName(config.SourcePath) + "' folder is empty.");
                 }
                 else
                 {
-                  
+
 
                     //Get Reference to Cad List
                     dynamic o = HelperUtility.LoadSourceData(config.SourcePath);
@@ -203,7 +203,7 @@ namespace Project1
                     Console.WriteLine("Starting Mapping....");
 
 
-                  
+
 
                     foreach (string file in files)
                     {
@@ -232,7 +232,7 @@ namespace Project1
                     Console.Write("Generating Part-Renumbering File");
 
                     Processing();
-                    HelperUtility.GeneratePartRenumFile(config.OutputPath,MasterRevisions,config.IsMade(Config.FilesEnum.ItemRenum));
+                    HelperUtility.GeneratePartRenumFile(config.OutputPath, MasterRevisions, config.IsMade(Config.FilesEnum.ItemRenum));
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
                     #endregion
@@ -252,7 +252,7 @@ namespace Project1
 
                     Console.Write("Generating Revision Error File");
                     Processing();
-                    HelperUtility.GenerateErrorRevs(config.OutputPath, MasterRevisions,config.IsMade(Config.FilesEnum.MissingItems));
+                    HelperUtility.GenerateErrorRevs(config.OutputPath, MasterRevisions, config.IsMade(Config.FilesEnum.MissingItems));
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
 
@@ -282,16 +282,19 @@ namespace Project1
                     Console.WriteLine("");
                     #endregion
 
+                    if (config.Reports.Contains(Config.FilesEnum.Log))
+                    {
+                        #region Log File
 
-                    #region Log File
+                        Console.Write("Generating Log File");
+                        Processing();
 
-                    Console.Write("Generating Log File");
-                    Processing();
-                    HelperUtility.GenerateLog(config.OutputPath,MasterItems, MasterRevisions, RefItem, TotalDatasets,OrphanDatasets,RecursiveDatasets, RefRevs, BrokenIMANRel.Count(), TotalIMAN.Count(), DateTime.Now - startTime,false);
-                    WriteLineComplete("Complete");
-                    Console.WriteLine("");
+                        HelperUtility.GenerateLog(config.OutputPath, MasterItems, MasterRevisions, RefItem, TotalDatasets, OrphanDatasets, RecursiveDatasets, RefRevs, BrokenIMANRel.Count(), TotalIMAN.Count(), DateTime.Now - startTime, false);
+                        WriteLineComplete("Complete");
+                        Console.WriteLine("");
 
-                    #endregion
+                        #endregion
+                    }
                 }
 
                 Console.WriteLine("");
@@ -362,7 +365,7 @@ namespace Project1
                     int TotalDatasets = MasterDatasets.Count();
                     int OrphanDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == "").Count();
                     int RecursiveDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == x.PUID).Count();
-                  
+
                     //int OrhpanDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == "").Count();
                     //int RecursiveDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == x.PUID).Count();
 
@@ -429,17 +432,29 @@ namespace Project1
                     Console.WriteLine("");
                     #endregion
 
-                    #region Log File
-
-                    Console.Write("Generating Log File");
+                    #region RevisionImport
+                    Console.Write("Generating Revision Import File");
                     Processing();
-                    HelperUtility.GenerateLog(config.OutputPath, MasterItems, MasterRevisions, RefItem, TotalDatasets, OrphanDatasets, RecursiveDatasets, RefRevs, BrokenIMANRel.Count(), TotalIMAN.Count(), DateTime.Now - startTime, true);
+                    HelperUtility.GenerateRevisionImport(config.OutputPath, MasterRevisions, config.IsMade(Config.FilesEnum.RevisionImport));
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
-
                     #endregion
 
-                    
+                    if (config.Reports.Contains(Config.FilesEnum.Log))
+                    {
+                        #region Log File
+
+                        Console.Write("Generating Log File");
+                        Processing();
+
+                        HelperUtility.GenerateLog(config.OutputPath, MasterItems, MasterRevisions, RefItem, TotalDatasets, OrphanDatasets, RecursiveDatasets, RefRevs, BrokenIMANRel.Count(), TotalIMAN.Count(), DateTime.Now - startTime, true);
+                        WriteLineComplete("Complete");
+                        Console.WriteLine("");
+
+                        #endregion
+                    }
+
+
                 }
 
                 Console.WriteLine("");
@@ -865,9 +880,9 @@ namespace Project1
             Processing();
 
             var paramList = from Dataset in HelperUtility.xmlFile.Elements(ns + "Dataset")
-                             select Dataset;
+                            select Dataset;
 
-            foreach(XElement dataset in paramList)
+            foreach (XElement dataset in paramList)
             {
 
                 string type = (string)dataset.Attribute("object_type").Value;

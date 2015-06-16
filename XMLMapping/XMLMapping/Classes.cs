@@ -18,12 +18,14 @@ namespace XMLStorageTypes
 
         public enum FilesEnum
         {
+            Log,
             ReleaseStatusIPS,
             ItemRenum,
             MissingItems,
             DatasetFailures,
             OrphanDatasets,
-            RecursiveDatasets
+            RecursiveDatasets,
+            RevisionImport
         }
 
         public Config(string path)
@@ -37,6 +39,10 @@ namespace XMLStorageTypes
 
             #region Report Files
 
+            if (config.Attribute("log").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.Log);
+            }
 
             if (config.Descendants("ReleaseStatusIPS").Single().Attribute("make").Value.ToUpper() == "YES")
             {
@@ -67,6 +73,11 @@ namespace XMLStorageTypes
             if (config.Descendants("RecursiveDatasets").Single().Attribute("make").Value.ToUpper() == "YES")
             {
                 Reports.Add(FilesEnum.RecursiveDatasets);
+            }
+
+            if (config.Descendants("RevisionImport").Single().Attribute("make").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.RevisionImport);
             }
             #endregion
         }
