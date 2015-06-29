@@ -13,7 +13,8 @@ namespace XMLStorageTypes
         public string SourcePath;
         public string TargetPath;
         public string OutputPath;
-        public ushort MaxSplitIPS;
+        public ushort MaxSplitRsIPS;
+        public ushort MaxSplitPcIPS;
         public HashSet<FilesEnum> Reports = new HashSet<FilesEnum>();
 
         public enum FilesEnum
@@ -25,7 +26,9 @@ namespace XMLStorageTypes
             DatasetFailures,
             OrphanDatasets,
             RecursiveDatasets,
-            RevisionImport
+            RevisionImport,
+            ReferenceToCAD,
+            DatasetParamCodeIPS
         }
 
         public Config(string path)
@@ -35,7 +38,8 @@ namespace XMLStorageTypes
             SourcePath = (config.Descendants("SourceFiles").Single().Attribute("path").Value == "") ? null : config.Descendants("SourceFiles").Single().Attribute("path").Value;
             TargetPath = (config.Descendants("TargetFiles").Single().Attribute("path").Value == "") ? null : config.Descendants("TargetFiles").Single().Attribute("path").Value;
             OutputPath = (config.Descendants("OutputFiles").Single().Attribute("path").Value == "") ? null : config.Descendants("OutputFiles").Single().Attribute("path").Value;
-            MaxSplitIPS = ushort.Parse((config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value);
+            MaxSplitRsIPS = ushort.Parse((config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value);
+            MaxSplitPcIPS = ushort.Parse((config.Descendants("DatasetParamCodeIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("DatasetParamCodeIPS").Single().Attribute("max").Value);
 
             #region Report Files
 
@@ -49,11 +53,20 @@ namespace XMLStorageTypes
                 Reports.Add(FilesEnum.ReleaseStatusIPS);
             }
 
+            if (config.Descendants("DatasetParamCodeIPS").Single().Attribute("make").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.DatasetParamCodeIPS);
+            }
+
             if (config.Descendants("ItemRenum").Single().Attribute("make").Value.ToUpper() == "YES")
             {
                 Reports.Add(FilesEnum.ItemRenum);
             }
 
+            if (config.Descendants("ReferenceToCad").Single().Attribute("make").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.ReferenceToCAD);
+            }
 
             if (config.Descendants("MissingItems").Single().Attribute("make").Value.ToUpper() == "YES")
             {
@@ -65,20 +78,25 @@ namespace XMLStorageTypes
                 Reports.Add(FilesEnum.DatasetFailures);
             }
 
+            //******************DISABLED******************************
             if (config.Descendants("OrphanDatasets").Single().Attribute("make").Value.ToUpper() == "YES")
             {
-                Reports.Add(FilesEnum.OrphanDatasets);
+                //Reports.Add(FilesEnum.OrphanDatasets);
             }
+            //********************************************************
 
+            //******************DISABLED******************************
             if (config.Descendants("RecursiveDatasets").Single().Attribute("make").Value.ToUpper() == "YES")
             {
-                Reports.Add(FilesEnum.RecursiveDatasets);
+                //Reports.Add(FilesEnum.RecursiveDatasets);
             }
+            //********************************************************
 
             if (config.Descendants("RevisionImport").Single().Attribute("make").Value.ToUpper() == "YES")
             {
                 Reports.Add(FilesEnum.RevisionImport);
             }
+
             #endregion
         }
 
@@ -98,7 +116,7 @@ namespace XMLStorageTypes
             public string PUID;
             public string ItemID;
             public string ObjectType;
-          
+
 
             public Item(string mPUID, string mItemID, string mObjectType)
             {
@@ -131,7 +149,7 @@ namespace XMLStorageTypes
                 Name = mName;
             }
         }
-        
+
         public class Revision
         {
             private string _itemID;
@@ -165,14 +183,22 @@ namespace XMLStorageTypes
             }
 
 
-            public void AddDataset(string mPUID,string mType,string mName)
+            public void AddDataset(string mPUID, string mType, string mName, string revChain)
             {
                 if (!_datasets.ContainsKey(mPUID))
                 {
-                    _datasets.Add(mPUID, new Dataset(mPUID, mType, this.ItemTag, mName));
+                    _datasets.Add(mPUID, new Dataset(mPUID, mType, this.ItemTag, mName, revChain));
                 }
             }
-          
+
+            public void AddDataset(Classes.Dataset ds)
+            {
+                if (!_datasets.ContainsKey(ds.PUID))
+                {
+                    _datasets.Add(ds.PUID, ds);
+                }
+            }
+
             private string _owningGroup;
 
             public string OwningGroup
@@ -196,7 +222,7 @@ namespace XMLStorageTypes
 
             }
 
-            public Revision(string puid, string mRevID, string mObjectType, string mItemTag, string mGroupRef, string mReleaseStatusList,DateTime mCreationDate)
+            public Revision(string puid, string mRevID, string mObjectType, string mItemTag, string mGroupRef, string mReleaseStatusList, DateTime mCreationDate)
             {
                 PUID = puid;
                 RevID = mRevID;
@@ -320,8 +346,8 @@ namespace XMLStorageTypes
                                where i.PUID == this.ItemTag
                                select i.ItemID);
 
-                if (item_id.Count() == 1) 
-                { 
+                if (item_id.Count() == 1)
+                {
                     _itemID = item_id.Single();
                 }
             }
@@ -365,12 +391,26 @@ namespace XMLStorageTypes
             public string PUID;
             public string Primary;
             public string Secondary;
+            public string TypeRef;
 
-            public IMANRelation(string mPUID, string mPrimary, string mSecondary)
+            public IMANRelation(string mPUID, string mPrimary, string mSecondary, string mTypeRef)
             {
                 PUID = mPUID;
                 Primary = mPrimary;
                 Secondary = mSecondary;
+                TypeRef = mTypeRef.Remove(0, 1);
+            }
+        }
+
+        public class IMANType
+        {
+            public string ID;
+            public string Type;
+
+            public IMANType(string mID, string mType)
+            {
+                ID = mID;
+                Type = mType;
             }
         }
 
@@ -380,16 +420,63 @@ namespace XMLStorageTypes
             public string Type;
             public string ParentUID;
             public string Name;
-        
-            public Dataset(string mPUID,string mType,string mParentUID,string mName)
+            public string Rev_chain_anchor;
+            public string Revisions;
+            public string RelationType;
+           
+
+            public static string MappedRelation(string type, string value)
+            {
+                switch (type)
+                {
+                    case "UGPART":
+                    case "CATDrawing":
+                    case "UGMaster":
+                    case "CATProduct":
+                    case "CATPART":
+                        {
+                            if ((value == "IMAN_external_object_link" || value == "catia_auxiliaryLink") && type == "CATDrawing")
+                            {
+                                return value;
+                            }
+
+                            return "IMAN_specification";
+                        }
+                    case "UGALTREP":
+                        {
+                            return "IMAN_UG_altrep";
+                        }
+                    case "CATSHAPE":
+                        {
+                            return "catia_alternateShapeRep";
+                        }
+                }
+
+                return value;
+            }
+
+
+            public Dataset(string mPUID, string mType, string mParentUID, string mName, string mRev_chain_anchor)
             {
                 PUID = mPUID;
                 Type = mType;
                 ParentUID = mParentUID;
                 Name = mName;
+                Rev_chain_anchor = mRev_chain_anchor;
             }
         }
 
+        public class RevisionAnchor
+        {
+            public string PUID;
+            public string Revisions;
+
+            public RevisionAnchor(string mPUID, string mRevisions)
+            {
+                PUID = mPUID;
+                Revisions = mRevisions;
+            }
+        }
     }
 
 }

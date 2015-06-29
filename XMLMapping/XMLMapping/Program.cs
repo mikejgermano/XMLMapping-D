@@ -146,6 +146,7 @@ namespace Project1
                 Config config = new Config(inputPath);
 
                 string RSIPS = Path.Combine(config.OutputPath, "ReleaseStatus_IPS_Files");
+                string PCIPS = Path.Combine(config.OutputPath, "ParamCode_IPS_Files");
 
                 #region Folder Create/Delete
                 if (!Directory.Exists(config.OutputPath))
@@ -164,6 +165,15 @@ namespace Project1
                 else
                 {
                     Array.ForEach(Directory.GetFiles(RSIPS), File.Delete);
+                }
+
+                if (!Directory.Exists(PCIPS))
+                {
+                    Directory.CreateDirectory(PCIPS);
+                }
+                else
+                {
+                    Array.ForEach(Directory.GetFiles(PCIPS), File.Delete);
                 }
 
                 if (!Directory.Exists(config.TargetPath))
@@ -188,18 +198,17 @@ namespace Project1
                 {
 
 
-                    //Get Reference to Cad List
                     dynamic o = HelperUtility.LoadSourceData(config.SourcePath);
 
                     IEnumerable<Classes.Item> MasterItems = (IEnumerable<Classes.Item>)o.Items;
                     IEnumerable<Classes.Revision> MasterRevisions = (IEnumerable<Classes.Revision>)o.Revisions;
-                    IEnumerable<Classes.Dataset> MasterDatasets = (IEnumerable<Classes.Dataset>)o.Datasets;
-                    int TotalDatasets = MasterDatasets.Count();
-                    int OrphanDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == "").Count();
-                    int RecursiveDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == x.PUID).Count();
+                    IEnumerable<string[]> UsedDatasets = (IEnumerable<string[]>)o.UsedDatasets;
+                    int TotalDatasets = (int)o.DatasetCount;
+                    //int OrphanDatasets = MasterDatasets.Except(MasterRevisions.SelectMany(x => x.GetDatasets())).Count();
+                    //int RecursiveDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == x.PUID).Count();
 
                     IEnumerable<string> RefItem = ((HashSet<string>)(o.RefCadItems)).ToList();
-                    IEnumerable<string> RefRevs = ((HashSet<string>)(o.RefCadRevisions)).ToList();
+                    IEnumerable<Classes.Revision> RefRevs = (IEnumerable<Classes.Revision>)(o.RefCadRevisions);
                     Console.WriteLine("Starting Mapping....");
 
 
@@ -210,6 +219,7 @@ namespace Project1
                         HelperUtility util = new HelperUtility();
                         util.MasterItems = MasterItems;
                         util.MasterRevisions = MasterRevisions;
+                        util.UsedDatasets = UsedDatasets;
                         util.RefCadItems = RefItem;
                         util.RefCadRevs = RefRevs;
                         totalFiles = files.Count();
@@ -242,10 +252,30 @@ namespace Project1
                     Console.Write("Generating ReleaseStatus File");
 
                     Processing();
-                    HelperUtility.GenerateIPSReleaseStatus(config.MaxSplitIPS, RSIPS, MasterRevisions, config.IsMade(Config.FilesEnum.ReleaseStatusIPS));
+                    HelperUtility.GenerateIPSReleaseStatus(config.MaxSplitRsIPS, RSIPS, MasterRevisions, config.IsMade(Config.FilesEnum.ReleaseStatusIPS));
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
 
+                    #endregion
+
+                    #region Parameter Code File
+
+                    Console.Write("Generating ReleaseStatus File");
+
+                    Processing();
+                    HelperUtility.GenerateIPSParameterCode(config.MaxSplitPcIPS, PCIPS, MasterRevisions, config.IsMade(Config.FilesEnum.DatasetParamCodeIPS));
+                    WriteLineComplete("Complete");
+                    Console.WriteLine("");
+
+                    #endregion
+                    
+                    #region Ref->CAD List
+                    Console.Write("Generating Reference To CAD File");
+
+                    Processing();
+                    HelperUtility.GenerateRef2CADFile(config.OutputPath, RefRevs, config.IsMade(Config.FilesEnum.ReferenceToCAD));
+                    WriteLineComplete("Complete");
+                    Console.WriteLine("");
                     #endregion
 
                     #region Rev Errors
@@ -266,18 +296,26 @@ namespace Project1
                     Console.WriteLine("");
                     #endregion
 
-                    #region OrphanDatasets
-                    Console.Write("Generating Revision Error File");
-                    Processing();
-                    HelperUtility.GenerateOrphanDatasets(config.OutputPath, MasterDatasets, config.IsMade(Config.FilesEnum.OrphanDatasets));
-                    WriteLineComplete("Complete");
-                    Console.WriteLine("");
-                    #endregion
+                    //#region OrphanDatasets
+                    //Console.Write("Generating Revision Error File");
+                    //Processing();
+                    //HelperUtility.GenerateOrphanDatasets(config.OutputPath, MasterDatasets, config.IsMade(Config.FilesEnum.OrphanDatasets));
+                    //WriteLineComplete("Complete");
+                    //Console.WriteLine("");
+                    //#endregion
 
-                    #region RecursiveDatasets
-                    Console.Write("Generating Revision Error File");
+                    //#region RecursiveDatasets
+                    //Console.Write("Generating Revision Error File");
+                    //Processing();
+                    //HelperUtility.GenerateRecursiveDatasets(config.OutputPath, MasterDatasets, config.IsMade(Config.FilesEnum.RecursiveDatasets));
+                    //WriteLineComplete("Complete");
+                    //Console.WriteLine("");
+                    //#endregion
+
+                    #region RevisionImport
+                    Console.Write("Generating Revision Import File");
                     Processing();
-                    HelperUtility.GenerateRecursiveDatasets(config.OutputPath, MasterDatasets, config.IsMade(Config.FilesEnum.RecursiveDatasets));
+                    HelperUtility.GenerateRevisionImport(config.OutputPath, MasterRevisions, config.IsMade(Config.FilesEnum.RevisionImport));
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
                     #endregion
@@ -289,7 +327,7 @@ namespace Project1
                         Console.Write("Generating Log File");
                         Processing();
 
-                        HelperUtility.GenerateLog(config.OutputPath, MasterItems, MasterRevisions, RefItem, TotalDatasets, OrphanDatasets, RecursiveDatasets, RefRevs, BrokenIMANRel.Count(), TotalIMAN.Count(), DateTime.Now - startTime, false);
+                        HelperUtility.GenerateLog(config.OutputPath, MasterItems, MasterRevisions, RefItem.Count(), TotalDatasets, RefRevs.Count(), BrokenIMANRel.Count(), TotalIMAN.Count(), DateTime.Now - startTime, false);
                         WriteLineComplete("Complete");
                         Console.WriteLine("");
 
@@ -303,7 +341,9 @@ namespace Project1
                 WriteLineComplete("Mapping complete. Duration - " + duration.Hours + ":" + duration.Minutes + ":" + duration.Seconds + "." + duration.Milliseconds);
                 Console.WriteLine("");
             }
-            //Report
+            //**********************************************************************************************
+            //************************************** R E P O R T *******************************************
+            //**********************************************************************************************
             else if (args.Select(x => x.ToUpper()).Where(x => x.Contains("-INPUTFILE") || x.Contains("-REPORT")).Count() == 2)
             {
                 string inputPath = args.Select(x => x.ToUpper()).Where(x => x.Contains("-INPUTFILE")).Single().Remove(0, 11);
@@ -314,6 +354,7 @@ namespace Project1
                 Config config = new Config(inputPath);
 
                 string RSIPS = Path.Combine(config.OutputPath, "ReleaseStatus_IPS_Files");
+                string PCIPS = Path.Combine(config.OutputPath, "ParamCode_IPS_Files");
 
                 #region Folder Create/Delete
                 if (!Directory.Exists(config.OutputPath))
@@ -334,14 +375,15 @@ namespace Project1
                     Array.ForEach(Directory.GetFiles(RSIPS), File.Delete);
                 }
 
-                if (!Directory.Exists(config.TargetPath))
+                if (!Directory.Exists(PCIPS))
                 {
-                    Directory.CreateDirectory(config.TargetPath);
+                    Directory.CreateDirectory(PCIPS);
                 }
                 else
                 {
-                    Array.ForEach(Directory.GetFiles(config.TargetPath), File.Delete);
+                    Array.ForEach(Directory.GetFiles(PCIPS), File.Delete);
                 }
+
                 #endregion
 
 
@@ -356,23 +398,24 @@ namespace Project1
                 {
 
 
-                    //Get Reference to Cad List
                     dynamic o = HelperUtility.LoadSourceData(config.SourcePath);
 
                     IEnumerable<Classes.Item> MasterItems = (IEnumerable<Classes.Item>)o.Items;
                     IEnumerable<Classes.Revision> MasterRevisions = (IEnumerable<Classes.Revision>)o.Revisions;
-                    IEnumerable<Classes.Dataset> MasterDatasets = (IEnumerable<Classes.Dataset>)o.Datasets;
-                    int TotalDatasets = MasterDatasets.Count();
-                    int OrphanDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == "").Count();
-                    int RecursiveDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == x.PUID).Count();
+                    //IEnumerable<Classes.Dataset> UsedDatasets = (IEnumerable<Classes.Dataset>)o.UsedDatasets;
+                    int TotalDatasets = (int)o.DatasetCount;
+                    //int OrphanDatasets = MasterDatasets.AsEnumerable().Except(MasterRevisions.SelectMany(x => x.GetDatasets())).Count();
+                    //int RecursiveDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == x.PUID).Count();
 
                     //int OrhpanDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == "").Count();
                     //int RecursiveDatasets = MasterDatasets.AsEnumerable().Where(x => x.ParentUID == x.PUID).Count();
 
                     IEnumerable<string> RefItem = ((HashSet<string>)(o.RefCadItems)).ToList();
-                    IEnumerable<string> RefRevs = ((HashSet<string>)(o.RefCadRevisions)).ToList();
+                    IEnumerable<Classes.Revision> RefRevs = (IEnumerable<Classes.Revision>)(o.RefCadRevisions);
                     Console.WriteLine("Starting Reporting....");
 
+
+                    
 
                     #region PartRenumberList
 
@@ -385,6 +428,12 @@ namespace Project1
                     #endregion
 
                     #region Ref->CAD List
+                    Console.Write("Generating Reference To CAD File");
+
+                    Processing();
+                    HelperUtility.GenerateRef2CADFile(config.OutputPath,RefRevs, config.IsMade(Config.FilesEnum.ReferenceToCAD));
+                    WriteLineComplete("Complete");
+                    Console.WriteLine("");
                     #endregion
 
                     #region ReleaseStatus File
@@ -392,7 +441,18 @@ namespace Project1
                     Console.Write("Generating ReleaseStatus File");
 
                     Processing();
-                    HelperUtility.GenerateIPSReleaseStatus(config.MaxSplitIPS, RSIPS, MasterRevisions, config.IsMade(Config.FilesEnum.ReleaseStatusIPS));
+                    HelperUtility.GenerateIPSReleaseStatus(config.MaxSplitRsIPS, RSIPS, MasterRevisions, config.IsMade(Config.FilesEnum.ReleaseStatusIPS));
+                    WriteLineComplete("Complete");
+                    Console.WriteLine("");
+
+                    #endregion
+
+                    #region Parameter Code File
+
+                    Console.Write("Generating ReleaseStatus File");
+
+                    Processing();
+                    HelperUtility.GenerateIPSParameterCode(config.MaxSplitPcIPS, PCIPS, MasterRevisions, config.IsMade(Config.FilesEnum.DatasetParamCodeIPS));
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
 
@@ -416,21 +476,21 @@ namespace Project1
                     Console.WriteLine("");
                     #endregion
 
-                    #region OrphanDatasets
-                    Console.Write("Generating Revision Error File");
-                    Processing();
-                    HelperUtility.GenerateOrphanDatasets(config.OutputPath, MasterDatasets, config.IsMade(Config.FilesEnum.OrphanDatasets));
-                    WriteLineComplete("Complete");
-                    Console.WriteLine("");
-                    #endregion
+                    //#region OrphanDatasets
+                    //Console.Write("Generating Revision Error File");
+                    //Processing();
+                    //HelperUtility.GenerateOrphanDatasets(config.OutputPath, MasterDatasets, config.IsMade(Config.FilesEnum.OrphanDatasets));
+                    //WriteLineComplete("Complete");
+                    //Console.WriteLine("");
+                    //#endregion
 
-                    #region RecursiveDatasets
-                    Console.Write("Generating Revision Error File");
-                    Processing();
-                    HelperUtility.GenerateRecursiveDatasets(config.OutputPath, MasterDatasets, config.IsMade(Config.FilesEnum.RecursiveDatasets));
-                    WriteLineComplete("Complete");
-                    Console.WriteLine("");
-                    #endregion
+                    //#region RecursiveDatasets
+                    //Console.Write("Generating Revision Error File");
+                    //Processing();
+                    //HelperUtility.GenerateRecursiveDatasets(config.OutputPath, MasterDatasets, config.IsMade(Config.FilesEnum.RecursiveDatasets));
+                    //WriteLineComplete("Complete");
+                    //Console.WriteLine("");
+                    //#endregion
 
                     #region RevisionImport
                     Console.Write("Generating Revision Import File");
@@ -447,7 +507,7 @@ namespace Project1
                         Console.Write("Generating Log File");
                         Processing();
 
-                        HelperUtility.GenerateLog(config.OutputPath, MasterItems, MasterRevisions, RefItem, TotalDatasets, OrphanDatasets, RecursiveDatasets, RefRevs, BrokenIMANRel.Count(), TotalIMAN.Count(), DateTime.Now - startTime, true);
+                        //HelperUtility.GenerateLog(config.OutputPath, MasterItems, MasterRevisions, RefItem.Count(), TotalDatasets, RecursiveDatasets, RefRevs.Count(), BrokenIMANRel.Count(), TotalIMAN.Count(), DateTime.Now - startTime, true);
                         WriteLineComplete("Complete");
                         Console.WriteLine("");
 
@@ -498,7 +558,7 @@ namespace Project1
             //Change Items
 
             var assemList = from el in HelperUtility.xmlFile.Elements(ns + "ItemRevision")
-                            join assemRev in util.RefCadRevs on el.Attribute("puid").Value equals assemRev
+                            join assemRev in util.RefCadRevs on el.Attribute("puid").Value equals assemRev.PUID
                             select el;
 
             foreach (XElement el in assemList)
@@ -516,7 +576,7 @@ namespace Project1
             }
 
             assemList = from el in HelperUtility.xmlFile.Elements(ns + "Pom_stub")
-                        join assemRev in util.RefCadRevs on el.Attribute("object_uid").Value equals assemRev
+                        join assemRev in util.RefCadRevs on el.Attribute("object_uid").Value equals assemRev.PUID
                         select el;
 
             foreach (XElement el in assemList)
@@ -854,62 +914,45 @@ namespace Project1
                 }
             }
 
-            /*REF
-            util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Customer", "gnm5_Customer");
-            util.CopyAttributeByRel("gnm5_Customer", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_ReferenceMasterS", "parent_uid", "parent_uid");
-
-            util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Description", "gnm5_Description");
-            util.CopyAttributeByRel("gnm5_Description", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_ReferenceMasterS", "parent_uid", "parent_uid");
-
-            util.GetElementsBy("DIAMReferenceMaster000").RenameAttribute("Lead_Program", "gnm5_Lead_Program");
-            util.CopyAttributeByRel("gnm5_Lead_Program", "DIAMReferenceMaster000", "", "", "Form", "object_type", "GNM5_Reference Master", "parent_uid", "parent_uid");
-
-            //REF REV
-            util.GetElementsBy("DIAMReferenceRevMaster000").RenameAttribute("Description", "object_desc");
-            util.CopyAttributeByRel("object_desc", "DIAMReferenceRevMaster000", "", "", "Form", "object_type", "GNM5_ReferenceRevision Master", "parent_uid", "parent_uid");
-
-            util.GetElementsBy("DIAMReferenceRevMaster000").RenameAttribute("ECI_Number", "gnm5_ECI_Number");
-            util.CopyAttributeByRel("gnm5_ECI_Number", "DIAMReferenceRevMaster000", "", "", "Form", "object_type", "GNM5_ReferenceRevision Master", "parent_uid", "parent_uid");
-            */
             WriteLineComplete("Complete");
             Console.WriteLine("");
             #endregion
 
-            #region ParameterCode
-            Console.Write("Dataset - add Parameter Code");
-            Processing();
+            //#region ParameterCode
+            //Console.Write("Dataset - add Parameter Code");
+            //Processing();
 
-            var paramList = from Dataset in HelperUtility.xmlFile.Elements(ns + "Dataset")
-                            select Dataset;
+            //var paramList = from Dataset in HelperUtility.xmlFile.Elements(ns + "Dataset")
+            //                select Dataset;
 
-            foreach (XElement dataset in paramList)
-            {
+            //foreach (XElement dataset in paramList)
+            //{
 
-                string type = (string)dataset.Attribute("object_type").Value;
-
-
-                switch (type)
-                {
-                    case "UGMASTER":
-                    case "CATProduct":
-                    case "CATPart":
-                        dataset.SetAttributeValue("gnm8_parameter_code", "c");
-                        break;
-                    case "UGPART":
-                    case "CATDrawing":
-                        dataset.SetAttributeValue("gnm8_parameter_code", "d");
-                        break;
-                    /*case "UGALTREP":
-                    case "CATShape":
-                        rev.SetAttributeValue("gnm8_parameter_code", "s");
-                        break;*/
-                }
-            }
+            //    string type = (string)dataset.Attribute("object_type").Value;
 
 
-            WriteLineComplete("Complete");
-            Console.WriteLine("");
-            #endregion
+            //    switch (type)
+            //    {
+            //        case "UGMASTER":
+            //        case "CATProduct":
+            //        case "CATPart":
+            //            dataset.SetAttributeValue("gnm8_parameter_code", "c");
+            //            break;
+            //        case "UGPART":
+            //        case "CATDrawing":
+            //            dataset.SetAttributeValue("gnm8_parameter_code", "d");
+            //            break;
+            //        /*case "UGALTREP":
+            //        case "CATShape":
+            //            rev.SetAttributeValue("gnm8_parameter_code", "s");
+            //            break;*/
+            //    }
+            //}
+
+
+            //WriteLineComplete("Complete");
+            //Console.WriteLine("");
+            //#endregion
 
             #region Remove Nodes
             Console.Write("Remove Nodes & Baselines and fix temp. 'R' revisions");

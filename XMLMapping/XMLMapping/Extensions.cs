@@ -96,8 +96,9 @@ namespace XMLMapping
         public SaveOptions Format;
         public IEnumerable<Classes.Item> MasterItems;
         public IEnumerable<Classes.Revision> MasterRevisions;
+        public IEnumerable<string[]> UsedDatasets;
         public IEnumerable<string> RefCadItems;
-        public IEnumerable<string> RefCadRevs;
+        public IEnumerable<Classes.Revision> RefCadRevs;
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string GetCurrentMethod()
@@ -275,36 +276,9 @@ namespace XMLMapping
             return newString;
         }
 
-        public static bool isDateBefore(string value, DateTime exDate)
-        {
-            string syear, smonth, sday;
-            int year, month, day;
-            int index;
-
-            index = value.IndexOf("-");
-            syear = value.Substring(0, index);
-            value = value.Remove(0, index + 1);
-            index = value.IndexOf("-");
-            smonth = value.Substring(0, index);
-            value = value.Remove(0, index + 1);
-            index = value.IndexOf("T");
-            sday = value.Substring(0, index);
-
-            int.TryParse(syear, out year);
-            int.TryParse(smonth, out month);
-            int.TryParse(sday, out day);
-
-            DateTime nDate = new DateTime(year, month, day);
-
-            if (nDate < exDate)
-                return true;
-
-            return false;
-        }
 
         public static object LoadSourceData(string path)
         {
-            HashSet<string> RefCadRevisions = new HashSet<string>();
             HashSet<string> RefCadItems = new HashSet<string>();
 
             Dictionary<string, Classes.Item> Items = new Dictionary<string, Classes.Item>();
@@ -327,11 +301,13 @@ namespace XMLMapping
 
                 Dictionary<string, Classes.Revision> RevisionInstances = new Dictionary<string, Classes.Revision>();
                 Dictionary<string, Classes.Item> ItemInstances = new Dictionary<string, Classes.Item>();
+                Dictionary<string, Classes.RevisionAnchor> RevisionAnchors = new Dictionary<string, Classes.RevisionAnchor>();
 
                 Dictionary<string, Classes.ReleaseStatus> ReleaseStatuses = new Dictionary<string, Classes.ReleaseStatus>();
                 Dictionary<string, Classes.Group> Groups = new Dictionary<string, Classes.Group>();
 
                 Dictionary<string, Classes.IMANRelation> IMANRels = new Dictionary<string, Classes.IMANRelation>();
+                Dictionary<string, Classes.IMANType> IMANTypes = new Dictionary<string, Classes.IMANType>();
                 Dictionary<string, Classes.Dataset> Datasets = new Dictionary<string, Classes.Dataset>();
 
                 //List<XElement> Item = new List<XElement>();
@@ -353,7 +329,7 @@ namespace XMLMapping
                             case "Item":
                                 {
                                     reader.MoveToAttribute("item_id");
-                                    string item_id = reader.Value;
+                                    string item_id = reader.Value.ToUpper();
 
                                     reader.MoveToAttribute("object_type");
                                     string object_type = reader.Value;
@@ -385,7 +361,7 @@ namespace XMLMapping
                                     DateTime creation_date = XmlConvert.ToDateTime(creation_dateS, XmlDateTimeSerializationMode.Utc);
 
                                     reader.MoveToAttribute("item_revision_id");
-                                    string revision_id = reader.Value;
+                                    string revision_id = reader.Value.ToUpper();
 
                                     reader.MoveToAttribute("object_type");
                                     string object_type = reader.Value;
@@ -470,10 +446,28 @@ namespace XMLMapping
                                     reader.MoveToAttribute("secondary_object");
                                     string secondary_object = reader.Value;
 
-                                    Classes.IMANRelation Rel = new Classes.IMANRelation(puid, primary_object, secondary_object);
+                                    reader.MoveToAttribute("relation_type");
+                                    string relation_type = reader.Value;
+
+                                    Classes.IMANRelation Rel = new Classes.IMANRelation(puid, primary_object, secondary_object, relation_type);
 
                                     if (!IMANRels.ContainsKey(puid))
                                         IMANRels.Add(puid, Rel);
+
+                                    break;
+                                }
+                            case "ImanType":
+                                {
+                                    reader.MoveToAttribute("elemId");
+                                    string elemId = reader.Value;
+
+                                    reader.MoveToAttribute("type_name");
+                                    string type_name = reader.Value;
+
+                                    Classes.IMANType IMANType = new Classes.IMANType(elemId, type_name);
+
+                                    if (!IMANRels.ContainsKey(elemId))
+                                        IMANTypes.Add(elemId, IMANType);
 
                                     break;
                                 }
@@ -491,30 +485,31 @@ namespace XMLMapping
                                     reader.MoveToAttribute("puid");
                                     string puid = reader.Value;
 
+                                    reader.MoveToAttribute("rev_chain_anchor");
+                                    string rev_chain_anchor = reader.Value;
+
 
                                     if (!MasterDatasets.ContainsKey(puid))
-                                        MasterDatasets.Add(puid, new Classes.Dataset(puid, object_type, parent_uid, object_name));
+                                        MasterDatasets.Add(puid, new Classes.Dataset(puid, object_type, parent_uid, object_name, rev_chain_anchor));
 
-                                    Datasets.Add(puid, new Classes.Dataset(puid, object_type, parent_uid, object_name));
+                                    Datasets.Add(puid, new Classes.Dataset(puid, object_type, parent_uid, object_name, rev_chain_anchor));
+
+                                    break;
+                                }
+                            case "RevisionAnchor":
+                                {
+                                    reader.MoveToAttribute("puid");
+                                    string puid = reader.Value;
+
+                                    reader.MoveToAttribute("revisions");
+                                    string revisions = reader.Value;
+
+                                    RevisionAnchors.Add(puid, new Classes.RevisionAnchor(puid, revisions));
 
                                     break;
                                 }
                         }
                     }
-                }
-
-                //add datasets
-                var datasets = from rev in RevisionInstances.Values
-                               join rels in IMANRels.Values on rev.PUID equals rels.Primary
-                               join dataset in Datasets.Values on rels.Secondary equals dataset.PUID
-                               select new object[2] { rev, dataset };
-
-                foreach (var rev in datasets)
-                {
-                    Classes.Revision revision = (Classes.Revision)rev[0];
-                    Classes.Dataset dataset = (Classes.Dataset)rev[1];
-
-                    revision.AddDataset(dataset.PUID, dataset.Type,dataset.Name);
                 }
 
 
@@ -529,7 +524,7 @@ namespace XMLMapping
                 foreach (Classes.Revision rev in assemListRev)
                 {
                     RefCadItems.Add(rev.ItemTag);
-                    RefCadRevisions.Add(rev.PUID);
+                    //RefCadRevisions.Add(rev.PUID);
                 }
 
                 //Fill in Group info
@@ -551,6 +546,30 @@ namespace XMLMapping
 
                     MasterRevisions.Add(key.Key, key.Value);
                 }
+
+                //add datasets To revisions
+                var datasets = from rev in RevisionInstances.Values
+                               join rels in IMANRels.Values on rev.PUID equals rels.Primary
+                               join types in IMANTypes.Values on rels.TypeRef equals types.ID
+                               join dataset in Datasets.Values on rels.Secondary equals dataset.PUID
+                               //join revAnchor in RevisionAnchors.Values on dataset.Rev_chain_anchor equals revAnchor.PUID
+                               select new object[3] { rev, dataset, types };
+
+                foreach (var rev in datasets)
+                {
+                    Classes.Revision revision = (Classes.Revision)rev[0];
+                    Classes.Dataset dataset = (Classes.Dataset)rev[1];
+                    Classes.IMANType type = (Classes.IMANType)rev[2];
+
+                    var anchor = (from revAnchor in RevisionAnchors.Values
+                                 where dataset.Rev_chain_anchor == revAnchor.PUID
+                                 select revAnchor).Single();
+                                
+                    dataset.Revisions = anchor.Revisions;
+                    dataset.RelationType = Classes.Dataset.MappedRelation(dataset.Type, type.Type);
+                    revision.AddDataset(dataset);
+
+                }
             }
 
             //update ReleaseList from Cad - change ref to production
@@ -566,15 +585,14 @@ namespace XMLMapping
 
             nList = null;
 
-            var nList2 = from el in MasterRevisions.Values
-                         join refCad in RefCadRevisions on el.PUID equals refCad
-                         select el;
+            var RefCadRevisions = from rev in MasterRevisions.Values
+                                  join refCad in RefCadItems on rev.ItemTag equals refCad
+                                  select rev;
 
-            foreach (Classes.Revision rev in nList2)
+            foreach (var rev in RefCadRevisions)
             {
                 rev.ObjectType = "Production Revision";
             }
-
 
 
             foreach (Classes.Revision rev in MasterRevisions.Values.Where(x => x.ReleaseStatusNames != ""))
@@ -592,10 +610,61 @@ namespace XMLMapping
 
             Renumber(refMasterItems, refMasterRevs);
 
-            //GenerateIPSReleaseStatus(IPS.ToList());
 
-            return new { Items = Items.Values.Select(x => x), Revisions = MasterRevisions.Values.Select(x => x), RefCadItems = RefCadItems, RefCadRevisions = RefCadRevisions, Datasets = MasterDatasets.Values.Select(x => x) };
+            var dsM = from rev in MasterRevisions.Values
+                      from dataset in rev.GetDatasets()
+                      //from anchor in dataset.Revisions.Split(',')
+                      //join datasetM in MasterDatasets.Values on anchor equals datasetM.PUID
+                      where rev.ItemID != ""
+                      select new DAnchor() { ItemID = rev.ItemID, RevID = rev.RevID, Dataset = dataset };
 
+            foreach (var el in dsM)
+            {
+
+                switch (el.Dataset.Type)
+                {
+                    case "UGMASTER":
+                    case "UGPART":
+                    case "UGALTREP":
+                    case "CATPart":
+                    case "CATProduct":
+                    case "CATDrawing":
+                    case "CATShape":
+                    case "DirectModel":
+                        {
+                            el.Dataset.Name = el.ItemID + "/" + el.RevID;
+                            break;
+                        }
+                    case "DrawingSheet":
+                    case "TIF":
+                        {
+
+                            string newID = el.Dataset.Name;
+                            int index = newID.LastIndexOf("_");
+                            if (index > -1)
+                            {
+                                newID = newID.Substring(0, index + 1) + el.RevID;
+                                el.Dataset.Name = newID;
+                            }
+                            break;
+                        }
+                }
+
+            }
+
+            var usedDatasets = from ds in MasterRevisions.Values.SelectMany(x => x.GetDatasets())
+                               from version in ds.Revisions.Split(',')
+                               select new string[2]{version, ds.Name };
+
+            return new { Items = Items.Values.Select(x => x), Revisions = MasterRevisions.Values.Select(x => x), RefCadItems = RefCadItems, RefCadRevisions = RefCadRevisions, DatasetCount = MasterDatasets.Count(), UsedDatasets = usedDatasets };
+
+        }
+
+        public class DAnchor
+        {
+            public Classes.Dataset Dataset;
+            public string ItemID;
+            public string RevID;
         }
 
         private static void Renumber(IEnumerable<Classes.Item> itemList, IEnumerable<Classes.Revision> revList)
@@ -653,7 +722,7 @@ namespace XMLMapping
 
             var groups = Split(revList
                         .Where(r => r.ItemID != "" && r.ReleaseStatusNames != "")
-                        .Select(r => string.Join("~", new string[3] { r.ItemID, r.RevID, r.ReleaseStatusNames})).ToList(), max);
+                        .Select(r => string.Join("~", new string[3] { r.ItemID, r.RevID, r.ReleaseStatusNames })).ToList(), max);
 
             //var rsArr = (from r in revList
             //             where r.ItemID != "" && r.ReleaseStatusNames != ""
@@ -669,15 +738,77 @@ namespace XMLMapping
             //File.WriteAllLines(Path.Combine(path,"ReleaseStatus.txt"), rsArr.ToArray());
 
         }
-        
+
+        private static string GetParamCode(string objectType)
+        {
+            string pc = "";
+
+            objectType = objectType.ToUpper();
+
+            if (objectType == "UGPART" || objectType == "CATDRAWING")
+            {
+                pc = "d";
+            }
+            else if (objectType == "UGMASTER" || objectType == "CATPART" || objectType == "CATPRODUCT")
+            {
+                pc = "c";
+            }
+
+            return pc;
+        }
+
+        public static void GenerateIPSParameterCode(ushort max, string path, IEnumerable<Classes.Revision> revList, bool Make)
+        {
+            if (!Make)
+                return;
+
+            var datasets = (from rev in revList
+                            from dataset in rev.GetDatasets()
+                            where GetParamCode(dataset.Type) != ""
+                            select string.Join("~", new string[6] { rev.ItemID, rev.RevID, dataset.Type, dataset.Name,dataset.RelationType, GetParamCode(dataset.Type) })).ToList();
+
+            var groups = Split(datasets, max);
+
+            //var rsArr = (from r in revList
+            //             where r.ItemID != "" && r.ReleaseStatusNames != ""
+            //             select string.Join("~", new string[3] { r.ItemID, r.RevID, r.ReleaseStatusNames })).ToList();
+
+            for (int i = 0; i < groups.Count(); i++)
+            {
+                groups[i].Insert(0, "!~ItemID~RevID~DsetType~DsetName~RelationName~DSET:gnm8_parameter_code");
+                File.WriteAllLines(Path.Combine(path, "ParamCode" + (i + 1) + ".txt"), groups[i].ToArray());
+            }
+            //rsArr.Insert(0, "!~ItemID~RevID~Status");
+
+            //File.WriteAllLines(Path.Combine(path,"ReleaseStatus.txt"), rsArr.ToArray());
+
+        }
+
+
+
+        public static void GenerateRef2CADFile(string path, IEnumerable<Classes.Revision> refAssmList, bool Make)
+        {
+            if (!Make)
+                return;
+
+            var revs = (from rev in refAssmList
+                        select string.Join(",", rev.PUID, rev.ItemTag, rev.ItemID, rev.RevID, rev.ObjectType, rev.OwningGroup, rev.CreationDate)).ToList();
+
+
+            revs.Insert(0, "Revision UID,Item UID, Item ID,Revision ID,Object Type,Owning Group,Creation Date");
+
+            File.WriteAllLines(Path.Combine(path, "ReferenceToCAD.csv"), revs.ToArray());
+
+        }
+
         public static void GenerateErrorRevs(string path, IEnumerable<Classes.Revision> revList, bool Make)
         {
             if (!Make)
                 return;
 
             var revs = (from rev in revList
-                       where rev.ItemID == ""
-                       select string.Join(",",rev.PUID,rev.ItemTag,rev.ItemID,rev.RevID,rev.ObjectType,rev.OwningGroup,rev.CreationDate)).ToList();
+                        where rev.ItemID == ""
+                        select string.Join(",", rev.PUID, rev.ItemTag, rev.ItemID, rev.RevID, rev.ObjectType, rev.OwningGroup, rev.CreationDate)).ToList();
 
 
             revs.Insert(0, "Revision UID,Item UID, Item ID,Revision ID,Object Type,Owning Group,Creation Date");
@@ -693,7 +824,7 @@ namespace XMLMapping
 
             var datasets = (from rev in revList
                             where rev.ItemID == ""
-                           from ds in rev.GetDatasets()
+                            from ds in rev.GetDatasets()
                             select string.Join(",", ds.PUID, ds.ParentUID, ds.Name, ds.Type)).ToList();
 
 
@@ -711,7 +842,7 @@ namespace XMLMapping
 
             var datasets = (from ds in datasetList
                             where ds.ParentUID == ""
-                            select string.Join(",",ds.PUID, ds.ParentUID, ds.Name, ds.Type)).ToList();
+                            select string.Join(",", ds.PUID, ds.ParentUID, ds.Name, ds.Type)).ToList();
 
 
 
@@ -727,7 +858,7 @@ namespace XMLMapping
                 return;
 
             var revisions = (from rev in revisionList
-                            select string.Join(",", rev.PUID, rev.ItemID, rev.RevID, rev.ObjectType, rev.OwningGroup, rev.ReleaseStatusNames)).ToList();
+                             select string.Join(",", rev.PUID, rev.ItemID, rev.RevID, rev.ObjectType, rev.OwningGroup, rev.ReleaseStatusNames)).ToList();
 
             revisions.Insert(0, "PUID,ItemID,RevID,Old_ObjectType,OwningGroup,ReleaseStatus");
 
@@ -865,42 +996,47 @@ namespace XMLMapping
             }
 
             var datasets = from dataset in xmlFile.Elements(xmlFile.GetDefaultNamespace() + "Dataset")
-                           join rev in MasterRevisions on dataset.Attribute("parent_uid").Value equals rev.ItemTag
-                           where dataset.Attribute("parent_uid").Value != "" && rev.ItemID != "" && rev.GetDatasets().Select(x => x.PUID).Contains(dataset.Attribute("puid").Value)
-                           select new { Dataset = dataset, ItemID = rev.ItemID, RevID = rev.RevID };
+                           join uds in UsedDatasets on dataset.Attribute("puid").Value equals uds[0]
+                           select new { Dataset = dataset, newName = uds[1] };
+
 
             foreach (var el in datasets)
             {
-                switch (el.Dataset.Attribute("object_type").Value)
-                {
-                    case "UGMASTER":
-                    case "UGPART":
-                    case "UGALTREP":
-                    case "CATPart":
-                    case "CATProduct":
-                    case "CATDrawing":
-                    case "CATShape":
-                    case "DirectModel":
-                        {
-                            el.Dataset.SetAttributeValue("object_name", el.ItemID + "/" + el.RevID);
-                            break;
-                        }
-                    case "DrawingSheet":
-                    case "TIF":
-                        {
-
-                            string newID = el.Dataset.Attribute("object_name").Value;
-                            int index = newID.LastIndexOf("_");
-                            if (index > -1)
-                            {
-                                newID = newID.Substring(0, index + 1) + el.RevID;
-                                el.Dataset.SetAttributeValue("object_name", newID);
-                            }
-                            break;
-                        }
-                }
-
+                el.Dataset.SetAttributeValue("object_name", el.newName);
             }
+
+            //foreach (var el in datasets)
+            //{
+            //    switch (el.Dataset.Attribute("object_type").Value)
+            //    {
+            //        case "UGMASTER":
+            //        case "UGPART":
+            //        case "UGALTREP":
+            //        case "CATPart":
+            //        case "CATProduct":
+            //        case "CATDrawing":
+            //        case "CATShape":
+            //        case "DirectModel":
+            //            {
+            //                el.Dataset.SetAttributeValue("object_name", el.ItemID + "/" + el.RevID);
+            //                break;
+            //            }
+            //        case "DrawingSheet":
+            //        case "TIF":
+            //            {
+
+            //                string newID = el.Dataset.Attribute("object_name").Value;
+            //                int index = newID.LastIndexOf("_");
+            //                if (index > -1)
+            //                {
+            //                    newID = newID.Substring(0, index + 1) + el.RevID;
+            //                    el.Dataset.SetAttributeValue("object_name", newID);
+            //                }
+            //                break;
+            //            }
+            //    }
+
+            //}
 
             var bomViews = from bomview in xmlFile.Elements(xmlFile.GetDefaultNamespace() + "PSBOMView")
                            join item in MasterItems on bomview.Attribute("parent_uid").Value equals item.PUID
@@ -924,7 +1060,7 @@ namespace XMLMapping
 
         }
 
-        public static void GenerateLog(string path, IEnumerable<Classes.Item> items, IEnumerable<Classes.Revision> revisions, IEnumerable<string> refItem, int TotalDatasets, int OrphanDatasets,int RecursiveDatasets, IEnumerable<string> refIR, int BrokenIMANS, int TotalIMANS, TimeSpan duration, bool Report)
+        public static void GenerateLog(string path, IEnumerable<Classes.Item> items, IEnumerable<Classes.Revision> revisions, int refItem, int TotalDatasets, int refIR, int BrokenIMANS, int TotalIMANS, TimeSpan duration, bool Report)
         {
             int totalRevCount = revisions.Count();
             int datasetCount = revisions.AsEnumerable().Sum(o => o.GetDatasets().Count());
@@ -947,11 +1083,11 @@ namespace XMLMapping
             {
                 writer.WriteLine("Log created on " + DateTime.Now);
                 if (!Report)
-                { 
-                writer.WriteLine("Mapping duration - " + duration.Hours.ToString("00") + ":" + duration.Minutes.ToString("00") + ":" + duration.Seconds.ToString("00"));
-                writer.WriteLine();
-                writer.WriteLine("\t[Maximum Data Import : " + percent + "%]");
-                writer.WriteLine();
+                {
+                    writer.WriteLine("Mapping duration - " + duration.Hours.ToString("00") + ":" + duration.Minutes.ToString("00") + ":" + duration.Seconds.ToString("00"));
+                    writer.WriteLine();
+                    writer.WriteLine("\t[Maximum Data Import : " + percent + "%]");
+                    writer.WriteLine();
                 }
                 else
                 {
@@ -970,17 +1106,17 @@ namespace XMLMapping
                 writer.WriteLine("\tTotal Datasets                   : " + TotalDatasets);
                 writer.WriteLine();
                 //writer.WriteLine("------------------------------------------------");
-                writer.WriteLine("\tTotal Reference -> CAD Items     : " + refItem.Count());
-                writer.WriteLine("\tTotal Reference -> CAD Revisions : " + refIR.Count());
+                writer.WriteLine("\tTotal Reference -> CAD Items     : " + refItem);
+                writer.WriteLine("\tTotal Reference -> CAD Revisions : " + refIR);
                 writer.WriteLine("Warnings:");
-                writer.WriteLine("\tRecursive Datasets               : " + RecursiveDatasets);
+                //writer.WriteLine("\tRecursive Datasets               : " + RecursiveDatasets);
                 writer.WriteLine("\tCAD Items with no revisions      : " + orphanItemCount);
                 writer.WriteLine("\tOrphan Revisions                 : " + revisions.Where(x => x.ItemID == "" && x.ItemTag == "").Count());
-                writer.WriteLine("\tOrphan Datasets                  : " + OrphanDatasets);
+                //writer.WriteLine("\tOrphan Datasets                  : " + OrphanDatasets);
                 writer.WriteLine("Errors:");
                 writer.WriteLine("\tRevisions with missing Items     : " + orphanRevs);
-                if(!Report)
-                writer.WriteLine("\tBroken IMAN Relations            : " + BrokenIMANS);
+                if (!Report)
+                    writer.WriteLine("\tBroken IMAN Relations            : " + BrokenIMANS);
                 writer.WriteLine("\tDataset failures                 : " + faildatasets);
                 writer.WriteLine("------------------------------------------------");
                 writer.WriteLine();
@@ -991,10 +1127,10 @@ namespace XMLMapping
                 writer.WriteLine();
                 writer.WriteLine("\t\t[Breakdown]");
                 writer.WriteLine("\t--------------------------------");
-                writer.WriteLine("\tProduction      : " + (items.Where(x => x.ObjectType == "Production").Count() - refItem.Count()));
+                writer.WriteLine("\tProduction      : " + (items.Where(x => x.ObjectType == "Production").Count() - refItem));
                 writer.WriteLine("\tPartialProcMatl : " + items.Where(x => x.ObjectType == "PartialProcMatl").Count());
                 writer.WriteLine("\tPrototype       : " + items.Where(x => x.ObjectType == "Prototype").Count());
-                writer.WriteLine("\tReference       : " + (items.Where(x => x.ObjectType == "Reference").Count() + refItem.Count()));
+                writer.WriteLine("\tReference       : " + (items.Where(x => x.ObjectType == "Reference").Count() + refItem));
                 writer.WriteLine("\tStandardPart    : " + items.Where(x => x.ObjectType == "StandardPart").Count());
                 writer.WriteLine("\t--------------------------------");
                 writer.WriteLine();
@@ -1002,10 +1138,10 @@ namespace XMLMapping
                 writer.WriteLine();
                 writer.WriteLine("\t\t[Breakdown]");
                 writer.WriteLine("\t--------------------------------");
-                writer.WriteLine("\tProduction Revision      : " + (revisions.Where(x => x.ObjectType == "Production Revision").Count() - refIR.Count()));
+                writer.WriteLine("\tProduction Revision      : " + (revisions.Where(x => x.ObjectType == "Production Revision").Count() - refIR));
                 writer.WriteLine("\tPartialProcMatl Revision : " + revisions.Where(x => x.ObjectType == "PartialProcMatl Revision").Count());
                 writer.WriteLine("\tPrototype Revision       : " + revisions.Where(x => x.ObjectType == "Prototype Revision").Count());
-                writer.WriteLine("\tReference Revision       : " + (revisions.Where(x => x.ObjectType == "Reference Revision").Count() + refIR.Count()));
+                writer.WriteLine("\tReference Revision       : " + (revisions.Where(x => x.ObjectType == "Reference Revision").Count() + refIR));
                 writer.WriteLine("\tStandardPart Revision    : " + revisions.Where(x => x.ObjectType == "StandardPart Revision").Count());
                 writer.WriteLine("\t--------------------------------");
                 writer.WriteLine("________________________________________________");
