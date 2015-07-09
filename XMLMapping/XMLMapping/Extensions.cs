@@ -562,9 +562,9 @@ namespace XMLMapping
                     Classes.IMANType type = (Classes.IMANType)rev[2];
 
                     var anchor = (from revAnchor in RevisionAnchors.Values
-                                 where dataset.Rev_chain_anchor == revAnchor.PUID
-                                 select revAnchor).Single();
-                                
+                                  where dataset.Rev_chain_anchor == revAnchor.PUID
+                                  select revAnchor).Single();
+
                     dataset.Revisions = anchor.Revisions;
                     dataset.RelationType = Classes.Dataset.MappedRelation(dataset.Type, type.Type);
                     revision.AddDataset(dataset);
@@ -654,7 +654,7 @@ namespace XMLMapping
 
             var usedDatasets = from ds in MasterRevisions.Values.SelectMany(x => x.GetDatasets())
                                from version in ds.Revisions.Split(',')
-                               select new string[2]{version, ds.Name };
+                               select new string[2] { version, ds.Name };
 
             return new { Items = Items.Values.Select(x => x), Revisions = MasterRevisions.Values.Select(x => x), RefCadItems = RefCadItems, RefCadRevisions = RefCadRevisions, DatasetCount = MasterDatasets.Count(), UsedDatasets = usedDatasets };
 
@@ -765,7 +765,7 @@ namespace XMLMapping
             var datasets = (from rev in revList
                             from dataset in rev.GetDatasets()
                             where GetParamCode(dataset.Type) != ""
-                            select string.Join("~", new string[6] { rev.ItemID, rev.RevID, dataset.Type, dataset.Name,dataset.RelationType, GetParamCode(dataset.Type) })).ToList();
+                            select string.Join("~", new string[6] { rev.ItemID, rev.RevID, dataset.Type, dataset.Name, dataset.RelationType, GetParamCode(dataset.Type) })).ToList();
 
             var groups = Split(datasets, max);
 
@@ -904,32 +904,30 @@ namespace XMLMapping
             XElement catia_auxiliaryLink = GetSingleElementByAttrID("ImanType", "type_name", "catia_auxiliaryLink");
             XElement IMAN_external_object_link = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_external_object_link");
 
-            if (IMAN_specification != null)
+
+
+            string IMAN_specificationRef = "#" + IMAN_specification.Attribute("elemId").Value;
+
+            string catia_auxiliaryLinkRef = (catia_auxiliaryLink != null) ? "#" + catia_auxiliaryLink.Attribute("elemId").Value : "";
+            string IMAN_external_object_linkRef = (IMAN_external_object_link != null) ? "#" + IMAN_external_object_link.Attribute("elemId").Value : "";
+
+            list1 =
+                from Item in xmlFile.Elements(df + "GNM8_CADItemRevision")
+                join ImanRel in xmlFile.Elements(df + "ImanRelation") on (string)Item.Attribute("puid").Value equals (string)ImanRel.Attribute("primary_object")
+                join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
+                where Dataset.Attribute("object_type").Value == "CATDrawing"
+                         || Dataset.Attribute("object_type").Value == "UGPART"
+                         || Dataset.Attribute("object_type").Value == "UGMASTER"
+                         || Dataset.Attribute("object_type").Value == "CATProduct"
+                         || Dataset.Attribute("object_type").Value == "CATPart"
+                select ImanRel;
+
+            foreach (XElement el in list1)
             {
-                string IMAN_specificationRef = "#" + IMAN_specification.Attribute("elemId").Value;
-                string catia_auxiliaryLinkRef = "";
-                string IMAN_external_object_linkRef = "";
-
-                catia_auxiliaryLinkRef = (catia_auxiliaryLink != null) ? "#" + catia_auxiliaryLink.Attribute("elemId").Value : "";
-                IMAN_external_object_linkRef = (IMAN_external_object_link != null) ? "#" + IMAN_external_object_link.Attribute("elemId").Value : "";
-
-                list1 =
-                    from ImanRel in xmlFile.Elements(df + "ImanRelation")
-                    join Item in xmlFile.Elements(df + "ItemRevision") on (string)ImanRel.Attribute("primary_object") equals (string)Item.Attribute("puid").Value
-                    join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
-                    where Dataset.Attribute("object_type").Value == "CATDrawing"
-                             || Dataset.Attribute("object_type").Value == "UGPART"
-                             || Dataset.Attribute("object_type").Value == "UGMaster"
-                             || Dataset.Attribute("object_type").Value == "CATProduct"
-                             || Dataset.Attribute("object_type").Value == "CATPart"
-                    select ImanRel;
-
-                foreach (XElement el in list1)
-                {
-                    el.Attribute("relation_type").SetValue(IMAN_specificationRef);
-                }
-
+                el.Attribute("relation_type").SetValue(IMAN_specificationRef);
             }
+
+
 
 
             #region CATSHAPE -> catia_alternateShapeRep
@@ -939,7 +937,7 @@ namespace XMLMapping
                 string catia_alternateShapeRepRef = "#" + catia_alternateShapeRep.Attribute("elemId").Value;
                 list1 =
                 from ImanRel in xmlFile.Elements(df + "ImanRelation")
-                join Item in xmlFile.Elements(df + "ItemRevision") on (string)ImanRel.Attribute("primary_object") equals (string)Item.Attribute("puid").Value
+                join Item in xmlFile.Elements(df + "GNM8_CADItemRevision") on (string)ImanRel.Attribute("primary_object") equals (string)Item.Attribute("puid").Value
                 join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
                 where Dataset.Attribute("object_type").Value == "CATSHAPE"
                 select ImanRel;
@@ -959,7 +957,7 @@ namespace XMLMapping
                 string IMAN_UG_altrepRef = "#" + IMAN_UG_altrep.Attribute("elemId").Value;
                 list1 =
                 from ImanRel in xmlFile.Elements(df + "ImanRelation")
-                join Item in xmlFile.Elements(df + "ItemRevision") on (string)ImanRel.Attribute("primary_object") equals (string)Item.Attribute("puid").Value
+                join Item in xmlFile.Elements(df + "GNM8_CADItemRevision") on (string)ImanRel.Attribute("primary_object") equals (string)Item.Attribute("puid").Value
                 join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
                 where Dataset.Attribute("object_type").Value == "UGALTREP"
                 select ImanRel;
