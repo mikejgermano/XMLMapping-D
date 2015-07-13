@@ -918,41 +918,92 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
-            //#region ParameterCode
-            //Console.Write("Dataset - add Parameter Code");
-            //Processing();
+            #region ParameterCode
+            Console.Write("Dataset - add Parameter Code");
+            Processing();
 
-            //var paramList = from Dataset in HelperUtility.xmlFile.Elements(ns + "Dataset")
-            //                select Dataset;
-
-            //foreach (XElement dataset in paramList)
-            //{
-
-            //    string type = (string)dataset.Attribute("object_type").Value;
+            #region Change Form Names and object types
 
 
-            //    switch (type)
-            //    {
-            //        case "UGMASTER":
-            //        case "CATProduct":
-            //        case "CATPart":
-            //            dataset.SetAttributeValue("gnm8_parameter_code", "c");
-            //            break;
-            //        case "UGPART":
-            //        case "CATDrawing":
-            //            dataset.SetAttributeValue("gnm8_parameter_code", "d");
-            //            break;
-            //        /*case "UGALTREP":
-            //        case "CATShape":
-            //            rev.SetAttributeValue("gnm8_parameter_code", "s");
-            //            break;*/
-            //    }
-            //}
+            //UGPartAttr -> GNM8_PartAttrStorage
+            var forms = from form in HelperUtility.xmlFile.Elements(ns + "Form")
+                        where form.Attribute("object_type").Value == "UGPartAttr"
+                        select form;
+
+            foreach (var form in forms)
+            {
+                form.SetAttributeValue("object_type", "GNM8_PartAttrStorage");
+                form.Name = "GNM8_PartAttrStorage";
+                form.SetAttributeValue("gnm8_parameter_code", "d");
+            }
+
+            var stubs = from form in HelperUtility.xmlFile.Elements(ns + "POM_stub")
+                        where form.Attribute("object_type").Value == "UGPartAttr"
+                        select form;
+
+            foreach (var stub in stubs)
+            {
+                stub.SetAttributeValue("object_class", "GNM8_PartAttrStorage");
+                stub.SetAttributeValue("object_type", "GNM8_PartAttrStorage");
+            }
 
 
-            //WriteLineComplete("Complete");
-            //Console.WriteLine("");
-            //#endregion
+            //catia_doc_attributes -> GNM8_catia_doc_attrStorage
+            forms = from form in HelperUtility.xmlFile.Elements(ns + "Form")
+                    where form.Attribute("object_type").Value == "catia_doc_attributes"
+                    select form;
+
+            foreach (var form in forms)
+            {
+                form.SetAttributeValue("object_type", "GNM8_catia_doc_attrStorage");
+                form.Name = "GNM8_catia_doc_attrStorage";
+                form.SetAttributeValue("gnm8_parameter_code", "d");
+            }
+
+            stubs = from form in HelperUtility.xmlFile.Elements(ns + "POM_stub")
+                    where form.Attribute("object_type").Value == "catia_doc_attributes"
+                        select form;
+
+            foreach (var stub in stubs)
+            {
+                stub.SetAttributeValue("object_class", "GNM8_catia_doc_attrStorage");
+                stub.SetAttributeValue("object_type", "GNM8_catia_doc_attrStorage");
+            }
+
+            #endregion
+
+
+            var paramList = from Dataset in HelperUtility.xmlFile.Elements(ns + "Dataset")
+                            select Dataset;
+
+            foreach (XElement dataset in paramList)
+            {
+
+                string type = (string)dataset.Attribute("object_type").Value;
+
+
+                switch (type)
+                {
+                    case "UGMASTER":
+                    case "CATProduct":
+                    case "CATPart":
+                        dataset.SetAttributeValue("gnm8_parameter_code", "c");
+                        break;
+                    //case "UGPART":
+                    //case "CATDrawing":
+                    //    dataset.SetAttributeValue("gnm8_parameter_code", "d");
+                    //    break;
+                    /*case "UGALTREP":
+                    case "CATShape":
+                        rev.SetAttributeValue("gnm8_parameter_code", "s");
+                        break;*/
+                }
+            }
+
+
+            WriteLineComplete("Complete");
+            Console.WriteLine("");
+            #endregion
 
             #region Remove Nodes
             Console.Write("Remove Nodes & Baselines and fix temp. 'R' revisions");
