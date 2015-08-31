@@ -4,15 +4,46 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Xml;
 using System.Xml.Linq;
+using System.Xml.Serialization;
 
 namespace XMLStorageTypes
 {
     public class Config
     {
+
+        public static void WriteObject<T>(string fileName, T objectToWrite, bool append = false)
+        {
+            FileStream writer = new FileStream(fileName, FileMode.Create);
+            DataContractSerializer ser =
+                new DataContractSerializer(typeof(T));
+            ser.WriteObject(writer, objectToWrite);
+            writer.Close();
+        }
+
+        public static T ReadObject<T>(string fileName)
+        {
+            FileStream fs = new FileStream(fileName,
+            FileMode.Open);
+            XmlDictionaryReader reader =
+                XmlDictionaryReader.CreateTextReader(fs, new XmlDictionaryReaderQuotas());
+            DataContractSerializer ser = new DataContractSerializer(typeof(T));
+
+            // Deserialize the data and read it from the instance.
+            T deserializedObject = (T)ser.ReadObject(reader, true);
+            reader.Close();
+            fs.Close();
+
+            return deserializedObject;
+        }
+
+
+
         public string SourcePath;
         public string TargetPath;
         public string OutputPath;
+        public string PreloadPath;
         public ushort MaxSplitRsIPS;
         public ushort MaxSplitPcIPS;
         public HashSet<FilesEnum> Reports = new HashSet<FilesEnum>();
@@ -38,6 +69,7 @@ namespace XMLStorageTypes
             SourcePath = (config.Descendants("SourceFiles").Single().Attribute("path").Value == "") ? null : config.Descendants("SourceFiles").Single().Attribute("path").Value;
             TargetPath = (config.Descendants("TargetFiles").Single().Attribute("path").Value == "") ? null : config.Descendants("TargetFiles").Single().Attribute("path").Value;
             OutputPath = (config.Descendants("OutputFiles").Single().Attribute("path").Value == "") ? null : config.Descendants("OutputFiles").Single().Attribute("path").Value;
+            //PreloadPath = (config.Descendants("Preload").Single().Attribute("path").Value == "") ? null : config.Descendants("Preload").Single().Attribute("path").Value;
             MaxSplitRsIPS = ushort.Parse((config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value);
             MaxSplitPcIPS = ushort.Parse((config.Descendants("DatasetParamCodeIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("DatasetParamCodeIPS").Single().Attribute("max").Value);
 
@@ -109,19 +141,27 @@ namespace XMLStorageTypes
         }
     }
 
+
     public class Classes
     {
+        [DataContract]
         public class Item
         {
+            [DataMember]
             public string PUID;
+            [DataMember]
             public string ItemID;
+            [DataMember]
             public string ObjectType;
+            [DataMember]
+            public string OldItemID;
 
 
             public Item(string mPUID, string mItemID, string mObjectType)
             {
                 PUID = mPUID;
                 ItemID = mItemID;
+                OldItemID = ItemID;
                 ObjectType = mObjectType;
             }
         }
@@ -150,8 +190,10 @@ namespace XMLStorageTypes
             }
         }
 
+        [DataContract]
         public class Revision
         {
+            [DataMember(Name = "_itemID")]
             private string _itemID;
 
             public string ItemID
@@ -164,14 +206,28 @@ namespace XMLStorageTypes
 
             }
 
+            [DataMember]
             public string PUID;
+            [DataMember]
             public string RevID;
+            [DataMember]
+            public string OldRevID;
+            [DataMember]
+            public string OldItemID = "";
+            [DataMember]
             public string ItemTag;
+            [DataMember]
             public string GroupRef;
+            [DataMember]
             public string ObjectType;
+            [DataMember]
             public string ReleaseStatusList;
+            [DataMember]
             public DateTime CreationDate;
+            [DataMember]
+            public bool Ref2CAD = false;
 
+            [DataMember(Name = "_datasets")]
             private Dictionary<string, Classes.Dataset> _datasets = new Dictionary<string, Classes.Dataset>();
 
             public IEnumerable<Classes.Dataset> GetDatasets()
@@ -199,6 +255,7 @@ namespace XMLStorageTypes
                 }
             }
 
+            [DataMember(Name = "_owningGroup")]
             private string _owningGroup;
 
             public string OwningGroup
@@ -210,6 +267,7 @@ namespace XMLStorageTypes
 
             }
 
+            [DataMember(Name = "_releaseStatusName")]
             private string _releaseStatusName;
 
             public string ReleaseStatusNames
@@ -222,10 +280,12 @@ namespace XMLStorageTypes
 
             }
 
+
             public Revision(string puid, string mRevID, string mObjectType, string mItemTag, string mGroupRef, string mReleaseStatusList, DateTime mCreationDate)
             {
                 PUID = puid;
                 RevID = mRevID;
+                OldRevID = mRevID;
                 ObjectType = mObjectType;
                 ItemTag = mItemTag;
                 GroupRef = mGroupRef;
@@ -342,6 +402,11 @@ namespace XMLStorageTypes
 
             public void SetItemID(IEnumerable<Classes.Item> items)
             {
+                if (this.PUID == "BHG1blrExd3AMD")
+                {
+
+                }
+
                 var item_id = (from i in items
                                where i.PUID == this.ItemTag
                                select i.ItemID);
@@ -349,6 +414,7 @@ namespace XMLStorageTypes
                 if (item_id.Count() == 1)
                 {
                     _itemID = item_id.Single();
+                    OldItemID = _itemID;
                 }
             }
 
@@ -414,16 +480,24 @@ namespace XMLStorageTypes
             }
         }
 
+        [DataContract]
         public class Dataset
         {
+            [DataMember]
             public string PUID;
+            [DataMember]
             public string Type;
+            [DataMember]
             public string ParentUID;
+            [DataMember]
             public string Name;
+            [DataMember]
             public string Rev_chain_anchor;
+            [DataMember]
             public string Revisions;
+            [DataMember]
             public string RelationType;
-           
+
 
             public static string MappedRelation(string type, string value)
             {

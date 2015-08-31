@@ -268,7 +268,7 @@ namespace Project1
                     Console.WriteLine("");
 
                     #endregion
-                    
+
                     #region Ref->CAD List
                     Console.Write("Generating Reference To CAD File");
 
@@ -415,7 +415,7 @@ namespace Project1
                     Console.WriteLine("Starting Reporting....");
 
 
-                    
+
 
                     #region PartRenumberList
 
@@ -431,7 +431,7 @@ namespace Project1
                     Console.Write("Generating Reference To CAD File");
 
                     Processing();
-                    HelperUtility.GenerateRef2CADFile(config.OutputPath,RefRevs, config.IsMade(Config.FilesEnum.ReferenceToCAD));
+                    HelperUtility.GenerateRef2CADFile(config.OutputPath, RefRevs, config.IsMade(Config.FilesEnum.ReferenceToCAD));
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
                     #endregion
@@ -531,8 +531,6 @@ namespace Project1
             GC.Collect();
         }
 
-
-
         public static void Translate(ref HelperUtility util, String file, string mNewFile)
         {
             XNamespace ns = HelperUtility.xmlFile.GetDefaultNamespace();
@@ -575,7 +573,7 @@ namespace Project1
                 el.SetAttributeValue("object_type", "Production");
             }
 
-            assemList = from el in HelperUtility.xmlFile.Elements(ns + "Pom_stub")
+            assemList = from el in HelperUtility.xmlFile.Elements(ns + "POM_stub")
                         join assemRev in util.RefCadRevs on el.Attribute("object_uid").Value equals assemRev.PUID
                         select el;
 
@@ -584,7 +582,7 @@ namespace Project1
                 el.SetAttributeValue("object_type", "Production Revision");
             }
 
-            assemList = from el in HelperUtility.xmlFile.Elements(ns + "Pom_stub")
+            assemList = from el in HelperUtility.xmlFile.Elements(ns + "POM_stub")
                         join assemItem in util.RefCadItems on el.Attribute("object_uid").Value equals assemItem
                         select el;
 
@@ -593,7 +591,28 @@ namespace Project1
                 el.SetAttributeValue("object_type", "Production");
             }
 
+            //change ref form
+            var assemItemList = util.RefCadItems;
 
+            var refForms = from form in util.GetElementsBy("Form", "object_type", "Reference Master").SearchList
+                           join item in HelperUtility.xmlFile.Elements(ns + "Item") on form.Attribute("parent_uid").Value equals item.Attribute("puid").Value
+                           where assemItemList.Contains(item.Attribute("puid").Value)
+                           select form;
+
+            foreach (var f in refForms)
+            {
+                f.SetAttributeValue("object_type", "Production Master");
+            }
+
+            refForms = from form in util.GetElementsBy("Form", "object_type", "Reference Revision Master").SearchList
+                           join item in HelperUtility.xmlFile.Elements(ns + "Item") on form.Attribute("parent_uid").Value equals item.Attribute("puid").Value
+                           where assemItemList.Contains(item.Attribute("puid").Value)
+                           select form;
+
+            foreach (var f in refForms)
+            {
+                f.SetAttributeValue("object_type", "Production Revision Master");
+            }
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
@@ -770,14 +789,14 @@ namespace Project1
             util.GetElementsBy("POM_stub", "object_class", "Item").Filter("object_type", "Reference").SetAttribute("object_type", "GNM8_Reference");
             util.GetElementsBy("POM_stub", "object_class", "ItemRevision").Filter("object_type", "Reference Revision").SetAttribute("object_type", "GNM8_ReferenceRevision");
 
-            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Production Master").SetAttribute("object_type", "GNM8_CADItem Master");
-            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Production Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
-            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "PartialProcMatl Master").SetAttribute("object_type", "GNM8_CADItem Master");
-            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "PartialProcMatl Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
-            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Prototype Master").SetAttribute("object_type", "GNM8_CADItem Master");
-            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Prototype Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
-            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "StandardPart Master").SetAttribute("object_type", "GNM8_CADItem Master");
-            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "StandardPart Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
+            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Production Master").SetAttribute("object_type", "GNM8_CADItemMaster");
+            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Production Revision Master").SetAttribute("object_type", "GNM8_CADItemRevisionMaster");
+            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "PartialProcMatl Master").SetAttribute("object_type", "GNM8_CADItemMaster");
+            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "PartialProcMatl Revision Master").SetAttribute("object_type", "GNM8_CADItemRevisionMaster");
+            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Prototype Master").SetAttribute("object_type", "GNM8_CADItemMaster");
+            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "Prototype Revision Master").SetAttribute("object_type", "GNM8_CADItemRevisionMaster");
+            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "StandardPart Master").SetAttribute("object_type", "GNM8_CADItemMaster");
+            util.GetElementsBy("POM_stub", "object_class", "Form").Filter("object_type", "StandardPart Revision Master").SetAttribute("object_type", "GNM8_CADItemRevisionMaster");
 
             #endregion
 
@@ -798,20 +817,27 @@ namespace Project1
             //Reference
             util.GetElementsBy("Item", "object_type", "Reference").SetAttribute("object_type", "GNM8_Reference");
             util.GetElementsBy("ItemRevision", "object_type", "Reference Revision").SetAttribute("object_type", "GNM8_ReferenceRevision");
-            //util.GetElementsBy("Form", "object_type", "Reference Master").SetAttribute("object_type", "GNM5_ReferenceMasterS");
-            //util.GetElementsBy("Form", "object_type", "Reference Revision Master").SetAttribute("object_type", "GNM5_ReferenceRevision Master");
+           
+            util.GetElementsBy("Form", "object_type", "Reference Master").SetAttribute("object_type", "GNM8_ReferenceMaster");
+            util.GetElementsBy("Form", "object_type", "Reference Revision Master").SetAttribute("object_type", "GNM8_ReferenceRevisionMaster");
 
-            util.GetElementsBy("Form", "object_type", "Production Master").SetAttribute("object_type", "GNM8_CADItem Master");
-            util.GetElementsBy("Form", "object_type", "Production Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
+            util.GetElementsBy("Form", "object_type", "Production Master").SetAttribute("object_type", "GNM8_CADItemMaster");
+            util.GetElementsBy("Form", "object_type", "Production Revision Master").SetAttribute("object_type", "GNM8_CADItemRevisionMaster");
 
-            util.GetElementsBy("Form", "object_type", "Prototype Master").SetAttribute("object_type", "GNM8_CADItem Master");
-            util.GetElementsBy("Form", "object_type", "Prototype Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
+            util.GetElementsBy("Form", "object_type", "Prototype Master").SetAttribute("object_type", "GNM8_CADItemMaster");
+            util.GetElementsBy("Form", "object_type", "Prototype Revision Master").SetAttribute("object_type", "GNM8_CADItemRevisionMaster");
 
-            util.GetElementsBy("Form", "object_type", "StandardPart Master").SetAttribute("object_type", "GNM8_CADItem Master");
-            util.GetElementsBy("Form", "object_type", "StandardPart Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
+            util.GetElementsBy("Form", "object_type", "StandardPart Master").SetAttribute("object_type", "GNM8_CADItemMaster");
+            util.GetElementsBy("Form", "object_type", "StandardPart Revision Master").SetAttribute("object_type", "GNM8_CADItemRevisionMaster");
 
-            util.GetElementsBy("Form", "object_type", "PartialProcMatl Master").SetAttribute("object_type", "GNM8_CADItem Master");
-            util.GetElementsBy("Form", "object_type", "PartialProcMatl Revision Master").SetAttribute("object_type", "GNM8_CADItemRevision Master");
+            util.GetElementsBy("Form", "object_type", "PartialProcMatl Master").SetAttribute("object_type", "GNM8_CADItemMaster");
+            util.GetElementsBy("Form", "object_type", "PartialProcMatl Revision Master").SetAttribute("object_type", "GNM8_CADItemRevisionMaster");
+
+            //util.GetElementsBy("Form", "object_type", "GNM8_CADItemMaster").RenameNodes("GNM8_CADItemMaster");
+            //util.GetElementsBy("Form", "object_type", "GNM8_CADItemRevisionMaster").RenameNodes("GNM8_CADItemRevisionMaster");
+
+            //util.GetElementsBy("Form", "object_type", "GNM8_ReferenceMaster").RenameNodes("GNM8_ReferenceMaster");
+            //util.GetElementsBy("Form", "object_type", "GNM8_ReferenceRevisionMaster").RenameNodes("GNM8_ReferenceRevisionMaster");
             #endregion
 
             #region Node Names
@@ -922,84 +948,45 @@ namespace Project1
             Console.Write("Dataset - add Parameter Code");
             Processing();
 
-            #region Change Form Names and object types
 
-
-            //UGPartAttr -> GNM8_PartAttrStorage
             var forms = from form in HelperUtility.xmlFile.Elements(ns + "Form")
                         where form.Attribute("object_type").Value == "UGPartAttr"
                         select form;
 
-            foreach (var form in forms)
+            foreach (var el in forms)
             {
-                form.SetAttributeValue("object_type", "GNM8_PartAttrStorage");
-                form.Name = "GNM8_PartAttrStorage";
-                form.SetAttributeValue("gnm8_parameter_code", "d");
+                el.Attribute("object_type").Value = "GNM8_PartAttr";
+
+                //add param code
+                el.SetAttributeValue("gnm8_parameter_code", "d");
             }
 
-            var stubs = from form in HelperUtility.xmlFile.Elements(ns + "POM_stub")
-                        where form.Attribute("object_type").Value == "UGPartAttr"
-                        select form;
-
-            foreach (var stub in stubs)
-            {
-                stub.SetAttributeValue("object_class", "GNM8_PartAttrStorage");
-                stub.SetAttributeValue("object_type", "GNM8_PartAttrStorage");
-            }
-
-
-            //catia_doc_attributes -> GNM8_catia_doc_attrStorage
             forms = from form in HelperUtility.xmlFile.Elements(ns + "Form")
                     where form.Attribute("object_type").Value == "catia_doc_attributes"
-                    select form;
-
-            foreach (var form in forms)
-            {
-                form.SetAttributeValue("object_type", "GNM8_catia_doc_attrStorage");
-                form.Name = "GNM8_catia_doc_attrStorage";
-                form.SetAttributeValue("gnm8_parameter_code", "d");
-            }
-
-            stubs = from form in HelperUtility.xmlFile.Elements(ns + "POM_stub")
-                    where form.Attribute("object_type").Value == "catia_doc_attributes"
                         select form;
 
-            foreach (var stub in stubs)
+            foreach (var el in forms)
             {
-                stub.SetAttributeValue("object_class", "GNM8_catia_doc_attrStorage");
-                stub.SetAttributeValue("object_type", "GNM8_catia_doc_attrStorage");
+                el.Attribute("object_type").Value = "Gnm8_catia_doc_attr";
+
+                //add param code
+                 el.SetAttributeValue("gnm8_parameter_code","d");
             }
 
-            #endregion
 
+            // add "c"
 
-            var paramList = from Dataset in HelperUtility.xmlFile.Elements(ns + "Dataset")
-                            select Dataset;
+            forms = from form in HelperUtility.xmlFile.Elements(ns + "Dataset")
+                    where form.Attribute("object_type").Value == "UGMASTER" || 
+                    form.Attribute("object_type").Value == "CATPart" || 
+                    form.Attribute("object_type").Value == "CATProduct"
+                    select form;
 
-            foreach (XElement dataset in paramList)
+            foreach (var el in forms)
             {
-
-                string type = (string)dataset.Attribute("object_type").Value;
-
-
-                switch (type)
-                {
-                    case "UGMASTER":
-                    case "CATProduct":
-                    case "CATPart":
-                        dataset.SetAttributeValue("gnm8_parameter_code", "c");
-                        break;
-                    //case "UGPART":
-                    //case "CATDrawing":
-                    //    dataset.SetAttributeValue("gnm8_parameter_code", "d");
-                    //    break;
-                    /*case "UGALTREP":
-                    case "CATShape":
-                        rev.SetAttributeValue("gnm8_parameter_code", "s");
-                        break;*/
-                }
+                //add param code
+                el.SetAttributeValue("gnm8_parameter_code","c");
             }
-
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
@@ -1133,8 +1120,8 @@ namespace Project1
 
             util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItemRevision").SetAttribute("object_class", "GNM8_CADItemRevision");
             util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItem").SetAttribute("object_class", "GNM8_CADItem");
-            util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItemRevision Master").SetAttribute("object_class", "GNM8_CADItemRevision Master");
-            util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItem Master").SetAttribute("object_class", "GNM8_CADItem Master");
+            util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItemRevisionMaster").SetAttribute("object_class", "GNM8_CADItemRevisionMaster");
+            util.GetElementsBy("POM_stub", "object_type", "GNM8_CADItemMaster").SetAttribute("object_class", "GNM8_CADItemMaster");
 
             util.GetElementsBy("POM_stub", "object_type", "GNM8_Reference").SetAttribute("object_class", "GNM8_Reference");
             util.GetElementsBy("POM_stub", "object_type", "GNM8_ReferenceRevision").SetAttribute("object_class", "GNM8_ReferenceRevision");
@@ -1222,6 +1209,20 @@ namespace Project1
             foreach (var el in brokenImans)
             {
                 BrokenIMANRel.Add(el.Attribute("puid").Value);
+            }
+
+            //Fill in Part Names
+            var revFix = from rev in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
+                   join id in util.MasterRevisions on rev.Attribute("puid").Value equals id.PUID
+                   where rev.Attribute("gnm8_dn_part_number") == null && id.OldItemID != ""
+                   select new { Rev = rev, PartName = id.OldItemID };
+
+            foreach (var el in revFix)
+            {
+                string s = el.PartName;
+                if (el.PartName.Substring(0, 2).ToUpper() == "JP")
+                    s = el.PartName.Remove(0, 2);
+                el.Rev.SetAttributeValue("gnm8_dn_part_number", s.ToUpper());
             }
 
             Console.WriteLine("");

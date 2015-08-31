@@ -279,11 +279,36 @@ namespace XMLMapping
 
         public static object LoadSourceData(string path)
         {
+
             HashSet<string> RefCadItems = new HashSet<string>();
 
             Dictionary<string, Classes.Item> Items = new Dictionary<string, Classes.Item>();
             Dictionary<string, Classes.Revision> MasterRevisions = new Dictionary<string, Classes.Revision>();
             Dictionary<string, Classes.Dataset> MasterDatasets = new Dictionary<string, Classes.Dataset>();
+
+            if (File.Exists(@".\Cache\Items.xml") &&
+                File.Exists(@".\Cache\DSCount.xml") &&
+                File.Exists(@".\Cache\RefCadItems.xml") &&
+                File.Exists(@".\Cache\RefCadRevs.xml") &&
+                File.Exists(@".\Cache\Revs.xml") &&
+                File.Exists(@".\Cache\UsedDS.xml"))
+            {
+                //IEnumerable<Classes.Item> iItems = Config.DeSerializeObject<Classes.Item[]>(@".\Cache\Items.xml").AsEnumerable();
+                //IEnumerable<Classes.Revision> iRevs = Config.DeSerializeObject<Classes.Revision[]>(@".\Cache\Revs.xml").AsEnumerable();
+                //HashSet<string> iRefCadItems = new HashSet<string>(Config.DeSerializeObject<string[]>("RefCadItems.xml").AsEnumerable());
+                //IEnumerable<Classes.Revision> iRefCadRevs = Config.DeSerializeObject<Classes.Revision[]>("RefCadRevs.xml").AsEnumerable();
+                //int iCount = Config.DeSerializeObject<int>("DSCount.xml");
+                //IEnumerable<string[]> iUsedDS = Config.DeSerializeObject<string[][]>("UsedDS.xml").AsEnumerable();
+
+                IEnumerable<Classes.Item> iItems = Config.ReadObject<Classes.Item[]>(@".\Cache\Items.xml").AsEnumerable();
+                IEnumerable<Classes.Revision> iRevs = Config.ReadObject<Classes.Revision[]>(@".\Cache\Revs.xml").AsEnumerable();
+                HashSet<string> iRefCadItems = new HashSet<string>(Config.ReadObject<string[]>(@".\Cache\RefCadItems.xml").AsEnumerable());
+                IEnumerable<Classes.Revision> iRefCadRevs = Config.ReadObject<Classes.Revision[]>(@".\Cache\RefCadRevs.xml").AsEnumerable();
+                int iCount = Config.ReadObject<int>(@".\Cache\DSCount.xml");
+                IEnumerable<string[]> iUsedDS = Config.ReadObject<string[][]>(@".\Cache\UsedDS.xml").AsEnumerable();
+
+                return new { Items = iItems, Revisions = iRevs, RefCadItems = iRefCadItems, RefCadRevisions = iRefCadRevs, DatasetCount = iCount, UsedDatasets = iUsedDS };
+            }
 
             string[] files = Directory.GetFiles(path);
             int fileCount = files.Count();
@@ -523,6 +548,7 @@ namespace XMLMapping
 
                 foreach (Classes.Revision rev in assemListRev)
                 {
+                    rev.Ref2CAD = true;
                     RefCadItems.Add(rev.ItemTag);
                     //RefCadRevisions.Add(rev.PUID);
                 }
@@ -652,9 +678,50 @@ namespace XMLMapping
 
             }
 
+            //REMOVE LATER --HACKY
+            //Fill in missing ItemIDs if they exist
+            var fix = from i in MasterRevisions.Values
+                      join item in Items.Values on i.ItemTag equals item.PUID
+                      where i.OldItemID == ""
+                      select new { Item = item, Rev = i };
+
+            foreach (var el in fix)
+            {
+                el.Rev.OldItemID = el.Item.OldItemID;
+            }
+
+
             var usedDatasets = from ds in MasterRevisions.Values.SelectMany(x => x.GetDatasets())
                                from version in ds.Revisions.Split(',')
                                select new string[2] { version, ds.Name };
+
+            //Save stuff
+
+            //Item
+            //Config.SerializeObject<Classes.Item[]>(Items.Values.ToArray(), Path.Combine("Cache", "Items.xml"));
+            Config.WriteObject<Classes.Item[]>(Path.Combine("Cache", "Items.xml"), Items.Values.ToArray());
+
+            //Revision
+            //Config.SerializeObject<Classes.Revision[]>(MasterRevisions.Values.ToArray(), Path.Combine("Cache", "Revs.xml"));
+            Config.WriteObject<Classes.Revision[]>(Path.Combine("Cache", "Revs.xml"), MasterRevisions.Values.ToArray());
+
+            //RefCadItems
+            //Config.SerializeObject<HashSet<string>>(RefCadItems, Path.Combine("Cache", "RefCadItems.xml"));
+            Config.WriteObject<HashSet<string>>(Path.Combine("Cache", "RefCadItems.xml"), RefCadItems);
+
+            //RefCadRevs
+            //Config.SerializeObject<Classes.Revision[]>(RefCadRevisions.ToArray(), Path.Combine("Cache", "RefCadRevs.xml"));
+            Config.WriteObject<Classes.Revision[]>(Path.Combine("Cache", "RefCadRevs.xml"), RefCadRevisions.ToArray());
+
+            //Dataset Count
+            //Config.SerializeObject<int>(MasterDatasets.Count(), Path.Combine("Cache","DSCount.xml"));
+            Config.WriteObject<int>(Path.Combine("Cache", "DSCount.xml"), MasterDatasets.Count());
+
+            //Used Datasets
+            //Config.SerializeObject<string[][]>(usedDatasets.ToArray(), Path.Combine("Cache", "UsedDS.xml"));
+            Config.WriteObject<string[][]>(Path.Combine("Cache", "UsedDS.xml"), usedDatasets.ToArray());
+
+            
 
             return new { Items = Items.Values.Select(x => x), Revisions = MasterRevisions.Values.Select(x => x), RefCadItems = RefCadItems, RefCadRevisions = RefCadRevisions, DatasetCount = MasterDatasets.Count(), UsedDatasets = usedDatasets };
 
@@ -807,11 +874,12 @@ namespace XMLMapping
                 return;
 
             var revs = (from rev in revList
+                        from dataset in rev.GetDatasets()
                         where rev.ItemID == ""
-                        select string.Join(",", rev.PUID, rev.ItemTag, rev.ItemID, rev.RevID, rev.ObjectType, rev.OwningGroup, rev.CreationDate)).ToList();
+                        select string.Join(",", rev.PUID, rev.ItemTag, rev.ItemID, "=\"" + rev.OldRevID + "\"", rev.ObjectType, rev.OwningGroup, dataset.Name)).ToList();
 
 
-            revs.Insert(0, "Revision UID,Item UID, Item ID,Revision ID,Object Type,Owning Group,Creation Date");
+            revs.Insert(0, "Revision UID,Item UID, Item ID,Revision ID,Object Type,Owning Group, Dataset Name");
 
             File.WriteAllLines(Path.Combine(path, "RevisionErrors.csv"), revs.ToArray());
 
@@ -1003,39 +1071,6 @@ namespace XMLMapping
                 el.Dataset.SetAttributeValue("object_name", el.newName);
             }
 
-            //foreach (var el in datasets)
-            //{
-            //    switch (el.Dataset.Attribute("object_type").Value)
-            //    {
-            //        case "UGMASTER":
-            //        case "UGPART":
-            //        case "UGALTREP":
-            //        case "CATPart":
-            //        case "CATProduct":
-            //        case "CATDrawing":
-            //        case "CATShape":
-            //        case "DirectModel":
-            //            {
-            //                el.Dataset.SetAttributeValue("object_name", el.ItemID + "/" + el.RevID);
-            //                break;
-            //            }
-            //        case "DrawingSheet":
-            //        case "TIF":
-            //            {
-
-            //                string newID = el.Dataset.Attribute("object_name").Value;
-            //                int index = newID.LastIndexOf("_");
-            //                if (index > -1)
-            //                {
-            //                    newID = newID.Substring(0, index + 1) + el.RevID;
-            //                    el.Dataset.SetAttributeValue("object_name", newID);
-            //                }
-            //                break;
-            //            }
-            //    }
-
-            //}
-
             var bomViews = from bomview in xmlFile.Elements(xmlFile.GetDefaultNamespace() + "PSBOMView")
                            join item in MasterItems on bomview.Attribute("parent_uid").Value equals item.PUID
                            select new { bom = bomview, ItemID = item.ItemID };
@@ -1153,10 +1188,12 @@ namespace XMLMapping
             if (!Make)
                 return;
 
-            var list = from el in MasterRevs
-                       where el.ObjectType != "Reference Revision"
-                       select string.Join(",", el.ItemTag, el.PUID, el.ItemID, el.RevID);
+            var list = (from el in MasterRevs
+                       //where el.ObjectType != "Reference Revision"
+                        select string.Join(",", el.ItemTag, el.PUID, el.OldItemID, "=\"" + el.OldRevID + "\"", el.ItemID, "=\"" + el.RevID + "\"", el.Ref2CAD)).ToList();
 
+            list.Insert(0, "Item UID, Rev UID, Old ItemID, Old RevID, New ItemId, New RevID, Ref2CAD");
+            
 
             File.WriteAllLines(Path.Combine(path, "PartRenum.csv"), list);
 
