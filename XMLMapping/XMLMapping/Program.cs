@@ -944,53 +944,8 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
-            #region ParameterCode
-            Console.Write("Dataset - add Parameter Code");
-            Processing();
 
-
-            var forms = from form in HelperUtility.xmlFile.Elements(ns + "Form")
-                        where form.Attribute("object_type").Value == "UGPartAttr"
-                        select form;
-
-            foreach (var el in forms)
-            {
-                el.Attribute("object_type").Value = "GNM8_PartAttr";
-
-                //add param code
-                el.SetAttributeValue("gnm8_parameter_code", "d");
-            }
-
-            forms = from form in HelperUtility.xmlFile.Elements(ns + "Form")
-                    where form.Attribute("object_type").Value == "catia_doc_attributes"
-                        select form;
-
-            foreach (var el in forms)
-            {
-                el.Attribute("object_type").Value = "Gnm8_catia_doc_attr";
-
-                //add param code
-                 el.SetAttributeValue("gnm8_parameter_code","d");
-            }
-
-
-            // add "c"
-
-            forms = from form in HelperUtility.xmlFile.Elements(ns + "Dataset")
-                    where form.Attribute("object_type").Value == "UGMASTER" || 
-                    form.Attribute("object_type").Value == "CATPart" || 
-                    form.Attribute("object_type").Value == "CATProduct"
-                    select form;
-
-            foreach (var el in forms)
-            {
-                //add param code
-                el.SetAttributeValue("gnm8_parameter_code","c");
-            }
-
-            WriteLineComplete("Complete");
-            Console.WriteLine("");
-            #endregion
+            
 
             #region Remove Nodes
             Console.Write("Remove Nodes & Baselines and fix temp. 'R' revisions");
@@ -1006,7 +961,7 @@ namespace Project1
                 int index = major_minor.IndexOf(".");
                 string before = major_minor.Substring(0, index);
                 string after = major_minor.Remove(0, index + 1);
-                el.SetAttributeValue("gnm8_part_name", "BSL-" + after + "-" + el.Attribute("gnm8_part_name").Value);
+                el.SetAttributeValue("object_name", "BSL-" + after + "-" + el.Attribute("object_name").Value);
                 el.SetAttributeValue("gnm8_major_minor", before);
             }
 

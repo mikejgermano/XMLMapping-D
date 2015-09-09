@@ -372,7 +372,7 @@ namespace XMLStorageTypes
                                 if (!this.ItemID.ToUpper().StartsWith("TN") && !this.ItemID.ToUpper().StartsWith("MX") && !this.ItemID.ToUpper().StartsWith("TD"))
                                     this.SetStatus("GNM8_Frozen");
 
-                                if (this.ItemID.ToUpper().StartsWith("TN") || this.ItemID.ToUpper().StartsWith("MX") || this.ItemID.ToUpper().StartsWith("TD"))
+                                if ((this.ItemID.ToUpper().StartsWith("TN") || this.ItemID.ToUpper().StartsWith("MX") || this.ItemID.ToUpper().StartsWith("TD")) && !this.ReleaseStatusNames.Contains("Frozen"))
                                     this.SetStatus("GNM8_PrototypeReleased");
                             }
                             break;
