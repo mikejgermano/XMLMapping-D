@@ -944,7 +944,53 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
+            #region Custom Forms
+            Console.Write("Change to Custom Forms");
+            Processing();
 
+
+            var forms = from form in HelperUtility.xmlFile.Elements(ns + "Form")
+                        where form.Attribute("object_type").Value == "UGPartAttr"
+                        select form;
+
+            foreach (var el in forms)
+            {
+                el.Attribute("object_type").Value = "GNM8_PartAttr";
+
+                //add param code
+                //el.SetAttributeValue("gnm8_parameter_code", "d");
+            }
+
+            forms = from form in HelperUtility.xmlFile.Elements(ns + "Form")
+                    where form.Attribute("object_type").Value == "catia_doc_attributes"
+                    select form;
+
+            foreach (var el in forms)
+            {
+                el.Attribute("object_type").Value = "Gnm8_catia_doc_attr";
+
+                //add param code
+                //el.SetAttributeValue("gnm8_parameter_code", "d");
+            }
+
+
+            /* add "c"
+
+            forms = from form in HelperUtility.xmlFile.Elements(ns + "Dataset")
+                    where form.Attribute("object_type").Value == "UGMASTER" ||
+                    form.Attribute("object_type").Value == "CATPart" ||
+                    form.Attribute("object_type").Value == "CATProduct"
+                    select form;
+
+            foreach (var el in forms)
+            {
+                //add param code
+                el.SetAttributeValue("gnm8_parameter_code", "c");
+            }*/
+
+            WriteLineComplete("Complete");
+            Console.WriteLine("");
+            #endregion
             
 
             #region Remove Nodes
