@@ -46,6 +46,7 @@ namespace XMLStorageTypes
         public string PreloadPath;
         public ushort MaxSplitRsIPS;
         public ushort MaxSplitPcIPS;
+        public ushort MaxSplitDsRenameIPS;
         public HashSet<FilesEnum> Reports = new HashSet<FilesEnum>();
 
         public enum FilesEnum
@@ -59,7 +60,9 @@ namespace XMLStorageTypes
             RecursiveDatasets,
             RevisionImport,
             ReferenceToCAD,
-            DatasetParamCodeIPS
+            DatasetParamCodeIPS,
+            DatasetRenameIPS,
+            ResetCache
         }
 
         public Config(string path)
@@ -72,12 +75,22 @@ namespace XMLStorageTypes
             //PreloadPath = (config.Descendants("Preload").Single().Attribute("path").Value == "") ? null : config.Descendants("Preload").Single().Attribute("path").Value;
             MaxSplitRsIPS = ushort.Parse((config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value);
             MaxSplitPcIPS = ushort.Parse((config.Descendants("DatasetParamCodeIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("DatasetParamCodeIPS").Single().Attribute("max").Value);
-
+            MaxSplitDsRenameIPS = ushort.Parse((config.Descendants("DatasetRenameIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("DatasetRenameIPS").Single().Attribute("max").Value);
             #region Report Files
+
+            if (config.Attribute("reset_cache").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.ResetCache);
+            }
 
             if (config.Attribute("log").Value.ToUpper() == "YES")
             {
                 Reports.Add(FilesEnum.Log);
+            }
+
+            if (config.Descendants("DatasetRenameIPS").Single().Attribute("make").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.DatasetRenameIPS);
             }
 
             if (config.Descendants("ReleaseStatusIPS").Single().Attribute("make").Value.ToUpper() == "YES")
@@ -402,11 +415,6 @@ namespace XMLStorageTypes
 
             public void SetItemID(IEnumerable<Classes.Item> items)
             {
-                if (this.PUID == "BHG1blrExd3AMD")
-                {
-
-                }
-
                 var item_id = (from i in items
                                where i.PUID == this.ItemTag
                                select i.ItemID);
@@ -492,6 +500,8 @@ namespace XMLStorageTypes
             [DataMember]
             public string Name;
             [DataMember]
+            public string OldName;
+            [DataMember]
             public string Rev_chain_anchor;
             [DataMember]
             public string Revisions;
@@ -526,7 +536,7 @@ namespace XMLStorageTypes
                         }
                 }
 
-                return value;
+                return "IMAN_specification";
             }
 
 
@@ -536,6 +546,7 @@ namespace XMLStorageTypes
                 Type = mType;
                 ParentUID = mParentUID;
                 Name = mName;
+                OldName = Name;
                 Rev_chain_anchor = mRev_chain_anchor;
             }
         }

@@ -824,6 +824,33 @@ namespace XMLMapping
             return pc;
         }
 
+        public static void GenerateIPSDatasetRename(ushort max, string path, IEnumerable<Classes.Revision> revList, bool Make)
+        {
+            if (!Make)
+                return;
+
+            var datasets = (from rev in revList
+                            from dataset in rev.GetDatasets()
+                            where GetParamCode(dataset.Type) != ""
+                            select string.Join("~", new string[6] { rev.ItemID, rev.RevID, dataset.Type, dataset.OldName, dataset.RelationType, dataset.Name })).ToList();
+
+            var groups = Split(datasets, max);
+
+            //var rsArr = (from r in revList
+            //             where r.ItemID != "" && r.ReleaseStatusNames != ""
+            //             select string.Join("~", new string[3] { r.ItemID, r.RevID, r.ReleaseStatusNames })).ToList();
+
+            for (int i = 0; i < groups.Count(); i++)
+            {
+                groups[i].Insert(0, "!~ItemID~RevID~DsetType~DsetName~RelationName~NewDsetName");
+                File.WriteAllLines(Path.Combine(path, "ParamCode" + (i + 1) + ".txt"), groups[i].ToArray());
+            }
+            //rsArr.Insert(0, "!~ItemID~RevID~Status");
+
+            //File.WriteAllLines(Path.Combine(path,"ReleaseStatus.txt"), rsArr.ToArray());
+
+        }
+
         public static void GenerateIPSParameterCode(ushort max, string path, IEnumerable<Classes.Revision> revList, bool Make)
         {
             if (!Make)
@@ -968,35 +995,13 @@ namespace XMLMapping
             IEnumerable<XElement> list1;
             XNamespace df = xmlFile.GetDefaultNamespace();
 
+            XElement IMAN_manifestation = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_manifestation");
             XElement IMAN_specification = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_specification");
             XElement catia_auxiliaryLink = GetSingleElementByAttrID("ImanType", "type_name", "catia_auxiliaryLink");
             XElement IMAN_external_object_link = GetSingleElementByAttrID("ImanType", "type_name", "IMAN_external_object_link");
 
 
-
             string IMAN_specificationRef = "#" + IMAN_specification.Attribute("elemId").Value;
-
-            string catia_auxiliaryLinkRef = (catia_auxiliaryLink != null) ? "#" + catia_auxiliaryLink.Attribute("elemId").Value : "";
-            string IMAN_external_object_linkRef = (IMAN_external_object_link != null) ? "#" + IMAN_external_object_link.Attribute("elemId").Value : "";
-
-            list1 =
-                from Item in xmlFile.Elements(df + "GNM8_CADItemRevision")
-                join ImanRel in xmlFile.Elements(df + "ImanRelation") on (string)Item.Attribute("puid").Value equals (string)ImanRel.Attribute("primary_object")
-                join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
-                where Dataset.Attribute("object_type").Value == "CATDrawing"
-                         || Dataset.Attribute("object_type").Value == "UGPART"
-                         || Dataset.Attribute("object_type").Value == "UGMASTER"
-                         || Dataset.Attribute("object_type").Value == "CATProduct"
-                         || Dataset.Attribute("object_type").Value == "CATPart"
-                select ImanRel;
-
-            foreach (XElement el in list1)
-            {
-                el.Attribute("relation_type").SetValue(IMAN_specificationRef);
-            }
-
-
-
 
             #region CATSHAPE -> catia_alternateShapeRep
             XElement catia_alternateShapeRep = GetSingleElementByAttrID("ImanType", "type_name", "catia_alternateShapeRep");
@@ -1037,6 +1042,40 @@ namespace XMLMapping
             }
             #endregion
 
+            if (IMAN_manifestation != null)
+            {
+                string IMAN_maifestationRef = "#" + IMAN_manifestation.Attribute("elemId").Value;
+
+                string catia_auxiliaryLinkRef = (catia_auxiliaryLink != null) ? "#" + catia_auxiliaryLink.Attribute("elemId").Value : "";
+                string IMAN_external_object_linkRef = (IMAN_external_object_link != null) ? "#" + IMAN_external_object_link.Attribute("elemId").Value : "";
+
+
+                var attributes = from el in xmlFile.Elements().Attributes()
+                                 where el.Value == IMAN_maifestationRef
+                                 select el;
+
+                foreach (XAttribute attr in attributes)
+                {
+                    attr.SetValue(IMAN_specificationRef);
+                }
+            }
+
+            //list1 =
+            //    from Item in xmlFile.Elements(df + "GNM8_CADItemRevision")
+            //    join ImanRel in xmlFile.Elements(df + "ImanRelation") on (string)Item.Attribute("puid").Value equals (string)ImanRel.Attribute("primary_object")
+            //    join Dataset in xmlFile.Elements(df + "Dataset") on (string)ImanRel.Attribute("secondary_object") equals (string)Dataset.Attribute("puid").Value
+            //    where Dataset.Attribute("object_type").Value == "CATDrawing"
+            //             || Dataset.Attribute("object_type").Value == "UGPART"
+            //             || Dataset.Attribute("object_type").Value == "UGMASTER"
+            //             || Dataset.Attribute("object_type").Value == "CATProduct"
+            //             || Dataset.Attribute("object_type").Value == "CATPart"
+            //    select ImanRel;
+
+            //foreach (XElement el in list1)
+            //{
+            //    el.Attribute("relation_type").SetValue(IMAN_specificationRef);
+            //}
+
         }
 
         public void PartReNum()
@@ -1061,15 +1100,15 @@ namespace XMLMapping
                 el.Revision.SetAttributeValue("item_revision_id", el.NewID.RevID);
             }
 
-            var datasets = from dataset in xmlFile.Elements(xmlFile.GetDefaultNamespace() + "Dataset")
-                           join uds in UsedDatasets on dataset.Attribute("puid").Value equals uds[0]
-                           select new { Dataset = dataset, newName = uds[1] };
+            //var datasets = from dataset in xmlFile.Elements(xmlFile.GetDefaultNamespace() + "Dataset")
+            //               join uds in UsedDatasets on dataset.Attribute("puid").Value equals uds[0]
+            //               select new { Dataset = dataset, newName = uds[1] };
 
 
-            foreach (var el in datasets)
-            {
-                el.Dataset.SetAttributeValue("object_name", el.newName);
-            }
+            //foreach (var el in datasets)
+            //{
+            //    el.Dataset.SetAttributeValue("object_name", el.newName);
+            //}
 
             var bomViews = from bomview in xmlFile.Elements(xmlFile.GetDefaultNamespace() + "PSBOMView")
                            join item in MasterItems on bomview.Attribute("parent_uid").Value equals item.PUID

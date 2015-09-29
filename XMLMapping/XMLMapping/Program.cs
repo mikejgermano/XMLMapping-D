@@ -29,6 +29,17 @@ namespace Project1
 
             startTime = DateTime.Now;
 
+            string _inputPath = args[0].Remove(0, 11);
+            Config _config = new Config(_inputPath);
+
+            if(_config.IsMade(Config.FilesEnum.ResetCache))
+            {
+                string[] files = Directory.GetFiles(@".\Cache");
+
+                foreach(string file in files){
+                    File.Delete(file);
+                }
+            }
 
 
             #region Clean/Validate
@@ -147,6 +158,7 @@ namespace Project1
 
                 string RSIPS = Path.Combine(config.OutputPath, "ReleaseStatus_IPS_Files");
                 string PCIPS = Path.Combine(config.OutputPath, "ParamCode_IPS_Files");
+                string DSRNIPS = Path.Combine(config.OutputPath, "DatasetRename_IPS_Files");
 
                 #region Folder Create/Delete
                 if (!Directory.Exists(config.OutputPath))
@@ -156,6 +168,15 @@ namespace Project1
                 else
                 {
                     Array.ForEach(Directory.GetFiles(config.OutputPath), File.Delete);
+                }
+
+                if (!Directory.Exists(DSRNIPS))
+                {
+                    Directory.CreateDirectory(DSRNIPS);
+                }
+                else
+                {
+                    Array.ForEach(Directory.GetFiles(DSRNIPS), File.Delete);
                 }
 
                 if (!Directory.Exists(RSIPS))
@@ -258,6 +279,17 @@ namespace Project1
 
                     #endregion
 
+                    #region Dataset Rename Code File
+
+                    Console.Write("Generating DatasetRename File");
+
+                    Processing();
+                    HelperUtility.GenerateIPSDatasetRename(config.MaxSplitPcIPS, DSRNIPS, MasterRevisions, config.IsMade(Config.FilesEnum.DatasetRenameIPS));
+                    WriteLineComplete("Complete");
+                    Console.WriteLine("");
+
+                    #endregion
+
                     #region Parameter Code File
 
                     Console.Write("Generating ReleaseStatus File");
@@ -355,6 +387,7 @@ namespace Project1
 
                 string RSIPS = Path.Combine(config.OutputPath, "ReleaseStatus_IPS_Files");
                 string PCIPS = Path.Combine(config.OutputPath, "ParamCode_IPS_Files");
+                string DSRNIPS = Path.Combine(config.OutputPath, "DatasetRename_IPS_Files");
 
                 #region Folder Create/Delete
                 if (!Directory.Exists(config.OutputPath))
@@ -364,6 +397,15 @@ namespace Project1
                 else
                 {
                     Array.ForEach(Directory.GetFiles(config.OutputPath), File.Delete);
+                }
+
+                if (!Directory.Exists(DSRNIPS))
+                {
+                    Directory.CreateDirectory(DSRNIPS);
+                }
+                else
+                {
+                    Array.ForEach(Directory.GetFiles(DSRNIPS), File.Delete);
                 }
 
                 if (!Directory.Exists(RSIPS))
@@ -442,6 +484,17 @@ namespace Project1
 
                     Processing();
                     HelperUtility.GenerateIPSReleaseStatus(config.MaxSplitRsIPS, RSIPS, MasterRevisions, config.IsMade(Config.FilesEnum.ReleaseStatusIPS));
+                    WriteLineComplete("Complete");
+                    Console.WriteLine("");
+
+                    #endregion
+
+                    #region Dataset Rename Code File
+
+                    Console.Write("Generating DatasetRename File");
+
+                    Processing();
+                    HelperUtility.GenerateIPSDatasetRename(config.MaxSplitPcIPS, DSRNIPS, MasterRevisions, config.IsMade(Config.FilesEnum.DatasetRenameIPS));
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
 
@@ -991,7 +1044,6 @@ namespace Project1
             WriteLineComplete("Complete");
             Console.WriteLine("");
             #endregion
-            
 
             #region Remove Nodes
             Console.Write("Remove Nodes & Baselines and fix temp. 'R' revisions");
