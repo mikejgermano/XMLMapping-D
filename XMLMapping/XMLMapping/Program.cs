@@ -29,15 +29,19 @@ namespace Project1
 
             startTime = DateTime.Now;
 
-            string _inputPath = args[0].Remove(0, 11);
-            Config _config = new Config(_inputPath);
-
-            if(_config.IsMade(Config.FilesEnum.ResetCache))
+            if (!args.Select(x => x.ToUpper()).Contains("-CLEAN"))
             {
-                string[] files = Directory.GetFiles(@".\Cache");
+                string _inputPath = args[0].Remove(0, 11);
+                Config _config = new Config(_inputPath);
 
-                foreach(string file in files){
-                    File.Delete(file);
+                if (_config.IsMade(Config.FilesEnum.ResetCache))
+                {
+                    string[] files = Directory.GetFiles(@".\Cache");
+
+                    foreach (string file in files)
+                    {
+                        File.Delete(file);
+                    }
                 }
             }
 
