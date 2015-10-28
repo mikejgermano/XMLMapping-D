@@ -15,7 +15,8 @@ namespace XMLStorageTypes
 
         public static void WriteObject<T>(string fileName, T objectToWrite, bool append = false)
         {
-            FileStream writer = new FileStream(fileName, FileMode.Create);
+            XmlWriterSettings settings = new XmlWriterSettings() { Indent = true };
+            XmlWriter writer = XmlWriter.Create(fileName, settings);
             DataContractSerializer ser =
                 new DataContractSerializer(typeof(T));
             ser.WriteObject(writer, objectToWrite);

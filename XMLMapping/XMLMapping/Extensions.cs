@@ -832,8 +832,8 @@ namespace XMLMapping
             var datasets = (from rev in revList
                             from dataset in rev.GetDatasets()
                             where GetParamCode(dataset.Type) != ""
-                            select string.Join("~", new string[6] { rev.ItemID, rev.RevID, dataset.Type, dataset.OldName, dataset.RelationType, dataset.Name })).ToList();
-
+                            select string.Join("~", new string[6] { rev.ItemID, rev.RevID, dataset.Type, (dataset.OldName.ToUpper().StartsWith("JP")) ? dataset.OldName.Remove(0, 2) : dataset.OldName, dataset.RelationType, dataset.Name })).ToList();
+           
             var groups = Split(datasets, max);
 
             //var rsArr = (from r in revList
@@ -858,7 +858,7 @@ namespace XMLMapping
 
             var datasets = (from rev in revList
                             from dataset in rev.GetDatasets()
-                            where GetParamCode(dataset.Type) != ""
+                            where GetParamCode(dataset.Type) != "" && GetParamCode(dataset.Type) != "d"
                             select string.Join("~", new string[6] { rev.ItemID, rev.RevID, dataset.Type, dataset.Name, dataset.RelationType, GetParamCode(dataset.Type) })).ToList();
 
             var groups = Split(datasets, max);
