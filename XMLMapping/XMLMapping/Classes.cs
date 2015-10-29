@@ -48,6 +48,7 @@ namespace XMLStorageTypes
         public ushort MaxSplitRsIPS;
         public ushort MaxSplitPcIPS;
         public ushort MaxSplitDsRenameIPS;
+        public string[] ScriptPaths;
         public HashSet<FilesEnum> Reports = new HashSet<FilesEnum>();
 
         public enum FilesEnum
@@ -144,6 +145,10 @@ namespace XMLStorageTypes
             }
 
             #endregion
+
+            ScriptPaths = (from el in config.Descendants("PostProcess").Elements("script")
+                          where el != null
+                          select el.Attribute("path").Value).ToArray();
         }
 
         public bool IsMade(FilesEnum item)

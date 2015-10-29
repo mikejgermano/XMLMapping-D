@@ -247,6 +247,7 @@ namespace Project1
                         util.UsedDatasets = UsedDatasets;
                         util.RefCadItems = RefItem;
                         util.RefCadRevs = RefRevs;
+                        util.config = config;
                         totalFiles = files.Count();
 
                         util.LoadFile(file);
@@ -1281,6 +1282,19 @@ namespace Project1
                     s = el.PartName.Remove(0, 2);
                 el.Rev.SetAttributeValue("gnm8_dn_part_number", s.ToUpper());
             }
+
+            #region PartRenum
+
+            Console.Write("Post Process");
+
+            Processing();
+
+            util.RunPostProcess();
+
+            WriteLineComplete("Complete");
+            Console.WriteLine("");
+
+            #endregion
 
             Console.WriteLine("");
 

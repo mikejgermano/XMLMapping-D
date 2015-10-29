@@ -99,6 +99,7 @@ namespace XMLMapping
         public IEnumerable<string[]> UsedDatasets;
         public IEnumerable<string> RefCadItems;
         public IEnumerable<Classes.Revision> RefCadRevs;
+        public Config config = null;
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string GetCurrentMethod()
@@ -988,7 +989,14 @@ namespace XMLMapping
                 .ToList();
         }
 
-
+        public void RunPostProcess()
+        {
+            foreach (string script in config.ScriptPaths)
+            {
+                Mike_G_ScriptMapper.Script s = new Mike_G_ScriptMapper.Script(script, ref xmlFile);
+                s.Run();
+            }
+        }
 
         public void IMANRelSwap()
         {
