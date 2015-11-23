@@ -163,8 +163,21 @@ namespace Project1
                 string RSIPS = Path.Combine(config.OutputPath, "ReleaseStatus_IPS_Files");
                 string PCIPS = Path.Combine(config.OutputPath, "ParamCode_IPS_Files");
                 string DSRNIPS = Path.Combine(config.OutputPath, "DatasetRename_IPS_Files");
+                string DSRNSQL = Path.Combine(config.OutputPath, "DatasetRename_SQL_Files");
 
                 #region Folder Create/Delete
+
+
+                if (!Directory.Exists(DSRNSQL))
+                {
+                    Directory.CreateDirectory(DSRNSQL);
+                }
+                else
+                {
+                    Array.ForEach(Directory.GetFiles(DSRNSQL), File.Delete);
+                }
+
+
                 if (!Directory.Exists(config.OutputPath))
                 {
                     Directory.CreateDirectory(config.OutputPath);
@@ -284,12 +297,23 @@ namespace Project1
 
                     #endregion
 
-                    #region Dataset Rename Code File
+                    #region Dataset Rename IPS Code File
 
-                    Console.Write("Generating DatasetRename File");
+                    Console.Write("Generating DatasetRename IPS File");
 
                     Processing();
                     HelperUtility.GenerateIPSDatasetRename(config.MaxSplitPcIPS, DSRNIPS, MasterRevisions, config.IsMade(Config.FilesEnum.DatasetRenameIPS));
+                    WriteLineComplete("Complete");
+                    Console.WriteLine("");
+
+                    #endregion
+
+                    #region Dataset Rename SQL Code File
+
+                    Console.Write("Generating DatasetRename SQL File");
+                    Processing();
+                    HelperUtility.GenerateSQLDatasetRename(config.MaxSplitDsRenameSQL, DSRNSQL, MasterRevisions, config.IsMade(Config.FilesEnum.DatasetRenameSQL));
+                 
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
 
@@ -393,6 +417,7 @@ namespace Project1
                 string RSIPS = Path.Combine(config.OutputPath, "ReleaseStatus_IPS_Files");
                 string PCIPS = Path.Combine(config.OutputPath, "ParamCode_IPS_Files");
                 string DSRNIPS = Path.Combine(config.OutputPath, "DatasetRename_IPS_Files");
+                string DSRNSQL = Path.Combine(config.OutputPath, "DatasetRename_SQL_Files");
 
                 #region Folder Create/Delete
                 if (!Directory.Exists(config.OutputPath))
@@ -402,6 +427,15 @@ namespace Project1
                 else
                 {
                     Array.ForEach(Directory.GetFiles(config.OutputPath), File.Delete);
+                }
+
+                if (!Directory.Exists(DSRNSQL))
+                {
+                    Directory.CreateDirectory(DSRNSQL);
+                }
+                else
+                {
+                    Array.ForEach(Directory.GetFiles(DSRNSQL), File.Delete);
                 }
 
                 if (!Directory.Exists(DSRNIPS))
@@ -494,12 +528,24 @@ namespace Project1
 
                     #endregion
 
-                    #region Dataset Rename Code File
+                    #region Dataset Rename IPS Code File
 
-                    Console.Write("Generating DatasetRename File");
+                    Console.Write("Generating DatasetRename IPS File");
 
                     Processing();
                     HelperUtility.GenerateIPSDatasetRename(config.MaxSplitPcIPS, DSRNIPS, MasterRevisions, config.IsMade(Config.FilesEnum.DatasetRenameIPS));
+                    WriteLineComplete("Complete");
+                    Console.WriteLine("");
+
+                    #endregion
+
+                    #region Dataset Rename SQL Code File
+
+                    Console.Write("Generating DatasetRename SQL File");
+
+                    Processing();
+                    //HelperUtility.GenerateIPSDatasetRename(config.MaxSplitPcIPS, DSRNIPS, MasterRevisions, config.IsMade(Config.FilesEnum.DatasetRenameIPS));
+                    HelperUtility.GenerateSQLDatasetRename(config.MaxSplitDsRenameSQL, DSRNSQL, MasterRevisions, config.IsMade(Config.FilesEnum.DatasetRenameSQL));
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
 

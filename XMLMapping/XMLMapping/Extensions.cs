@@ -825,6 +825,39 @@ namespace XMLMapping
             return pc;
         }
 
+        public static void GenerateSQLDatasetRename(ushort max, string path, IEnumerable<Classes.Revision> revList, bool Make)
+        {
+            if (!Make)
+                return;
+
+             var datasets = (from rev in revList
+                            from dataset in rev.GetDatasets()
+                            where GetParamCode(dataset.Type) != ""
+                             select new { PUID = dataset.PUID, dataset.Name});
+
+             List<string> list = new List<string>(); 
+
+             foreach (var ds in datasets)
+             {
+                 StringBuilder sb = new StringBuilder();
+
+                 sb.Append("UPDATE PWORKSPACEOBJECT ");
+                 sb.Append("SET POBJECT_NAME = '" + ds.Name + "' ");
+                 sb.Append("WHERE PUID = '" + ds.PUID + "';");
+
+                 list.Add(sb.ToString());
+             }
+
+             var groups = Split(list, max);
+
+
+             for (int i = 0; i < groups.Count(); i++)
+             {
+                 //groups[i].Insert(0, "!~ItemID~RevID~DsetType~DsetName~RelationName~NewDsetName");
+                 File.WriteAllLines(Path.Combine(path, "SQL_DS_Rename" + (i + 1) + ".sql"), groups[i].ToArray());
+             }
+        }
+
         public static void GenerateIPSDatasetRename(ushort max, string path, IEnumerable<Classes.Revision> revList, bool Make)
         {
             if (!Make)
@@ -844,7 +877,7 @@ namespace XMLMapping
             for (int i = 0; i < groups.Count(); i++)
             {
                 groups[i].Insert(0, "!~ItemID~RevID~DsetType~DsetName~RelationName~NewDsetName");
-                File.WriteAllLines(Path.Combine(path, "ParamCode" + (i + 1) + ".txt"), groups[i].ToArray());
+                File.WriteAllLines(Path.Combine(path, "IPS_DS_Rename" + (i + 1) + ".txt"), groups[i].ToArray());
             }
             //rsArr.Insert(0, "!~ItemID~RevID~Status");
 

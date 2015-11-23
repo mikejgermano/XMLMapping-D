@@ -48,6 +48,7 @@ namespace XMLStorageTypes
         public ushort MaxSplitRsIPS;
         public ushort MaxSplitPcIPS;
         public ushort MaxSplitDsRenameIPS;
+        public ushort MaxSplitDsRenameSQL;
         public string[] ScriptPaths;
         public HashSet<FilesEnum> Reports = new HashSet<FilesEnum>();
 
@@ -64,6 +65,7 @@ namespace XMLStorageTypes
             ReferenceToCAD,
             DatasetParamCodeIPS,
             DatasetRenameIPS,
+            DatasetRenameSQL,
             ResetCache
         }
 
@@ -78,6 +80,9 @@ namespace XMLStorageTypes
             MaxSplitRsIPS = ushort.Parse((config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value);
             MaxSplitPcIPS = ushort.Parse((config.Descendants("DatasetParamCodeIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("DatasetParamCodeIPS").Single().Attribute("max").Value);
             MaxSplitDsRenameIPS = ushort.Parse((config.Descendants("DatasetRenameIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("DatasetRenameIPS").Single().Attribute("max").Value);
+            MaxSplitDsRenameSQL = ushort.Parse((config.Descendants("DatasetRenameSQL").Single().Attribute("max").Value == "") ? null : config.Descendants("DatasetRenameIPS").Single().Attribute("max").Value);
+                
+            
             #region Report Files
 
             if (config.Attribute("reset_cache").Value.ToUpper() == "YES")
@@ -103,6 +108,11 @@ namespace XMLStorageTypes
             if (config.Descendants("DatasetParamCodeIPS").Single().Attribute("make").Value.ToUpper() == "YES")
             {
                 Reports.Add(FilesEnum.DatasetParamCodeIPS);
+            }
+
+            if (config.Descendants("DatasetRenameSQL").Single().Attribute("make").Value.ToUpper() == "YES")
+            {
+                Reports.Add(FilesEnum.DatasetRenameSQL);
             }
 
             if (config.Descendants("ItemRenum").Single().Attribute("make").Value.ToUpper() == "YES")
