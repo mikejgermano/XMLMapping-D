@@ -1329,7 +1329,21 @@ namespace Project1
                 el.Rev.SetAttributeValue("gnm8_dn_part_number", s.ToUpper());
             }
 
+
             #region PartRenum
+
+            #region DatasetRenum
+
+            var DSR = util.UsedDatasets;
+            var datasetsRename = from dataset in HelperUtility.xmlFile.Elements(ns + "Dataset")
+                                 join ds in DSR on dataset.Attribute("puid").Value equals ds[0]
+                                 select new { DS = dataset, NewDatasetName = ds[1] };
+
+            foreach (var el in datasetsRename)
+            {
+                el.DS.SetAttributeValue("object_name", el.NewDatasetName);
+            }
+            #endregion
 
             Console.Write("Post Process");
 
