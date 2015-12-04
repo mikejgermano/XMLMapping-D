@@ -80,7 +80,7 @@ namespace XMLStorageTypes
             MaxSplitRsIPS = ushort.Parse((config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("ReleaseStatusIPS").Single().Attribute("max").Value);
             MaxSplitPcIPS = ushort.Parse((config.Descendants("DatasetParamCodeIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("DatasetParamCodeIPS").Single().Attribute("max").Value);
             MaxSplitDsRenameIPS = ushort.Parse((config.Descendants("DatasetRenameIPS").Single().Attribute("max").Value == "") ? null : config.Descendants("DatasetRenameIPS").Single().Attribute("max").Value);
-            MaxSplitDsRenameSQL = ushort.Parse((config.Descendants("DatasetRenameSQL").Single().Attribute("max").Value == "") ? null : config.Descendants("DatasetRenameIPS").Single().Attribute("max").Value);
+            MaxSplitDsRenameSQL = ushort.Parse((config.Descendants("DatasetRenameSQL").Single().Attribute("max").Value == "") ? null : config.Descendants("DatasetRenameSQL").Single().Attribute("max").Value);
                 
             
             #region Report Files

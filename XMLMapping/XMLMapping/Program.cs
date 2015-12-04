@@ -313,7 +313,7 @@ namespace Project1
                     Console.Write("Generating DatasetRename SQL File");
                     Processing();
                     HelperUtility.GenerateSQLDatasetRename(config.MaxSplitDsRenameSQL, DSRNSQL, MasterRevisions, config.IsMade(Config.FilesEnum.DatasetRenameSQL));
-                 
+
                     WriteLineComplete("Complete");
                     Console.WriteLine("");
 
@@ -709,9 +709,9 @@ namespace Project1
             }
 
             refForms = from form in util.GetElementsBy("Form", "object_type", "Reference Revision Master").SearchList
-                           join item in HelperUtility.xmlFile.Elements(ns + "Item") on form.Attribute("parent_uid").Value equals item.Attribute("puid").Value
-                           where assemItemList.Contains(item.Attribute("puid").Value)
-                           select form;
+                       join item in HelperUtility.xmlFile.Elements(ns + "Item") on form.Attribute("parent_uid").Value equals item.Attribute("puid").Value
+                       where assemItemList.Contains(item.Attribute("puid").Value)
+                       select form;
 
             foreach (var f in refForms)
             {
@@ -921,7 +921,7 @@ namespace Project1
             //Reference
             util.GetElementsBy("Item", "object_type", "Reference").SetAttribute("object_type", "GNM8_Reference");
             util.GetElementsBy("ItemRevision", "object_type", "Reference Revision").SetAttribute("object_type", "GNM8_ReferenceRevision");
-           
+
             util.GetElementsBy("Form", "object_type", "Reference Master").SetAttribute("object_type", "GNM8_ReferenceMaster");
             util.GetElementsBy("Form", "object_type", "Reference Revision Master").SetAttribute("object_type", "GNM8_ReferenceRevisionMaster");
 
@@ -1078,22 +1078,29 @@ namespace Project1
             }
 
 
-            /* add "c"
 
-            forms = from form in HelperUtility.xmlFile.Elements(ns + "Dataset")
-                    where form.Attribute("object_type").Value == "UGMASTER" ||
-                    form.Attribute("object_type").Value == "CATPart" ||
-                    form.Attribute("object_type").Value == "CATProduct"
-                    select form;
 
-            foreach (var el in forms)
-            {
-                //add param code
-                el.SetAttributeValue("gnm8_parameter_code", "c");
-            }*/
+
+
+
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
+            #endregion
+
+
+            #region param code
+
+            list = from rev in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
+                   join imanRel in HelperUtility.xmlFile.Elements(ns + "ImanRelation") on rev.Attribute("puid").Value equals imanRel.Attribute("primary_object").Value
+                   join ds in HelperUtility.xmlFile.Elements(ns + "Dataset") on imanRel.Attribute("secondary_object").Value equals ds.Attribute("puid").Value
+                   where ds.Attribute("object_type").Value.ToUpper() == "UGMASTER" || ds.Attribute("object_type").Value.ToUpper() == "CATPART" || ds.Attribute("object_type").Value.ToUpper() == "CATPRODUCT"
+                   select rev;
+           
+            foreach(var el in list){
+                el.SetAttributeValue("gnm8_parameter_code", "c");
+            }
+
             #endregion
 
             #region Remove Nodes
@@ -1317,9 +1324,9 @@ namespace Project1
 
             //Fill in Part Names
             var revFix = from rev in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
-                   join id in util.MasterRevisions on rev.Attribute("puid").Value equals id.PUID
-                   where rev.Attribute("gnm8_dn_part_number") == null && id.OldItemID != ""
-                   select new { Rev = rev, PartName = id.OldItemID };
+                         join id in util.MasterRevisions on rev.Attribute("puid").Value equals id.PUID
+                         where rev.Attribute("gnm8_dn_part_number") == null && id.OldItemID != ""
+                         select new { Rev = rev, PartName = id.OldItemID };
 
             foreach (var el in revFix)
             {
