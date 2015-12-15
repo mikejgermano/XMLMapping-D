@@ -833,7 +833,7 @@ namespace XMLMapping
              var datasets = (from rev in revList
                             from dataset in rev.GetDatasets()
                             from drev in dataset.Revisions.Split(',')
-                            //where GetParamCode(dataset.Type) != ""
+                             where dataset.Name != dataset.OldName
                              select new { PUID = drev, Name = dataset.Name });
 
              List<string> list = new List<string>(); 

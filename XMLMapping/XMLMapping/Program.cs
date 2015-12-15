@@ -1107,6 +1107,18 @@ namespace Project1
             Console.Write("Remove Nodes & Baselines and fix temp. 'R' revisions");
             Processing();
 
+
+            #region Last BMIDE Version Remove dn_part_num
+            list = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
+                   select el;
+
+            foreach (var el in list)
+            {
+                el.SetAttributeValue("object_name", el.Attribute("gnm8_dn_part_number").Value);
+                
+            }
+            #endregion
+
             IEnumerable<XElement> listx = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
                                           where el.Attribute("gnm8_major_minor").Value.Contains(".") //&& el.Attribute("gnm8_major_minor").Value.Count() > 6
                                           select el;
@@ -1117,7 +1129,7 @@ namespace Project1
                 int index = major_minor.IndexOf(".");
                 string before = major_minor.Substring(0, index);
                 string after = major_minor.Remove(0, index + 1);
-                el.SetAttributeValue("object_name", "BSL-" + after + "-" + el.Attribute("object_name").Value);
+                el.SetAttributeValue("object_name", el.Attribute("object_name").Value + "-" + "BSL-" + after);
                 el.SetAttributeValue("gnm8_major_minor", before);
             }
 
@@ -1289,17 +1301,30 @@ namespace Project1
 
             #endregion
 
+
+            #region Last BMIDE Version Object Name
+            list = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItem")
+                   select el;
+
+            foreach (var el in list)
+            {
+                el.SetAttributeValue("object_name", el.Attribute("item_id").Value);
+            }
+            #endregion
+
             #region PartRenum
 
             Console.Write("Part Renumbering");
 
             Processing();
+            
+
             util.PartReNum();
             WriteLineComplete("Complete");
             Console.WriteLine("");
 
             #endregion
-
+           
 
             var imans = from iman in HelperUtility.xmlFile.Elements(ns + "ImanRelation")
                         select iman;
@@ -1336,7 +1361,19 @@ namespace Project1
                 el.Rev.SetAttributeValue("gnm8_dn_part_number", s.ToUpper());
             }
 
-            #region PartRenum
+            //BMIDE Change
+            list = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
+                   where el.Attribute("gnm8_dn_part_number") != null
+                   select el;
+
+            foreach (var el in list)
+            {
+                el.Attribute("gnm8_dn_part_number").Remove();
+            }
+
+        
+
+            #region Post Process
 
             Console.Write("Post Process");
 
