@@ -1096,8 +1096,9 @@ namespace Project1
                    join ds in HelperUtility.xmlFile.Elements(ns + "Dataset") on imanRel.Attribute("secondary_object").Value equals ds.Attribute("puid").Value
                    where ds.Attribute("object_type").Value.ToUpper() == "UGMASTER" || ds.Attribute("object_type").Value.ToUpper() == "CATPART" || ds.Attribute("object_type").Value.ToUpper() == "CATPRODUCT"
                    select rev;
-           
-            foreach(var el in list){
+
+            foreach (var el in list)
+            {
                 el.SetAttributeValue("gnm8_parameter_code", "c");
             }
 
@@ -1108,50 +1109,9 @@ namespace Project1
             Processing();
 
 
-            #region Last BMIDE Version Remove dn_part_num
-            list = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
-                   select el;
 
-            foreach (var el in list)
-            {
-                el.SetAttributeValue("object_name", el.Attribute("gnm8_dn_part_number").Value);
-                
-            }
-            #endregion
 
-            IEnumerable<XElement> listx = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
-                                          where el.Attribute("gnm8_major_minor").Value.Contains(".") //&& el.Attribute("gnm8_major_minor").Value.Count() > 6
-                                          select el;
-
-            foreach (XElement el in listx)
-            {
-                string major_minor = el.Attribute("gnm8_major_minor").Value;
-                int index = major_minor.IndexOf(".");
-                string before = major_minor.Substring(0, index);
-                string after = major_minor.Remove(0, index + 1);
-                el.SetAttributeValue("object_name", el.Attribute("object_name").Value + "-" + "BSL-" + after);
-                el.SetAttributeValue("gnm8_major_minor", before);
-            }
-
-            listx = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
-                    where Regex.IsMatch(el.Attribute("gnm8_major_minor").Value, @"(^\d)-(\d\d)R$")
-                    select el;
-
-            foreach (XElement el in listx)
-            {
-                GroupCollection group = Regex.Match(el.Attribute("gnm8_major_minor").Value, @"(^\d)-(\d\d)R$").Groups;
-                el.SetAttributeValue("gnm8_major_minor", group[1].ToString() + "-" + group[2] + "-R");
-            }
-
-            listx = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
-                    where Regex.IsMatch(el.Attribute("gnm8_major_minor").Value, @"(^\d)R$")
-                    select el;
-
-            foreach (XElement el in listx)
-            {
-                GroupCollection group = Regex.Match(el.Attribute("gnm8_major_minor").Value, @"(^\d)R$").Groups;
-                el.SetAttributeValue("gnm8_major_minor", group[1].ToString() + "-R");
-            }
+           
 
             list = from el in HelperUtility.xmlFile.Elements()
                    where el.Name.LocalName == "DIAMProductionMaster000" ||
@@ -1250,13 +1210,13 @@ namespace Project1
             util.GetElementsBy("POM_stub", "object_type", "GNM8_ReferenceRevision").SetAttribute("object_class", "GNM8_ReferenceRevision");
 
             //remove dia3 properties
-            listx = from el in HelperUtility.xmlFile.Descendants()
+            list = from el in HelperUtility.xmlFile.Descendants()
                     where el.Attribute("dia3_NDI_ECI_number") != null
                     || el.Attribute("dia3_Split_Number") != null
                     || el.Attribute("dia3_partNumber") != null
                     select el;
 
-            foreach (XElement el in listx)
+            foreach (XElement el in list)
             {
                 if (el.Attribute("dia3_NDI_ECI_number") != null)
                     el.Attribute("dia3_NDI_ECI_number").Remove();
@@ -1317,14 +1277,14 @@ namespace Project1
             Console.Write("Part Renumbering");
 
             Processing();
-            
+
 
             util.PartReNum();
             WriteLineComplete("Complete");
             Console.WriteLine("");
 
             #endregion
-           
+
 
             var imans = from iman in HelperUtility.xmlFile.Elements(ns + "ImanRelation")
                         select iman;
@@ -1361,6 +1321,18 @@ namespace Project1
                 el.Rev.SetAttributeValue("gnm8_dn_part_number", s.ToUpper());
             }
 
+            #region Last BMIDE Version Remove dn_part_num
+            list = from rev in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
+                   select rev;
+
+            foreach (var el in list)
+            {
+
+                el.SetAttributeValue("object_name", el.Attribute("gnm8_dn_part_number").Value);
+
+            }
+            #endregion
+
             //BMIDE Change
             list = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
                    where el.Attribute("gnm8_dn_part_number") != null
@@ -1371,7 +1343,39 @@ namespace Project1
                 el.Attribute("gnm8_dn_part_number").Remove();
             }
 
-        
+            IEnumerable<XElement> listx = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
+                                          where el.Attribute("gnm8_major_minor").Value.Contains(".") //&& el.Attribute("gnm8_major_minor").Value.Count() > 6
+                                          select el;
+
+            foreach (XElement el in listx)
+            {
+                string major_minor = el.Attribute("gnm8_major_minor").Value;
+                int index = major_minor.IndexOf(".");
+                string before = major_minor.Substring(0, index);
+                string after = major_minor.Remove(0, index + 1);
+                el.SetAttributeValue("object_name", el.Attribute("object_name").Value + "-" + "BSL-" + after);
+                el.SetAttributeValue("gnm8_major_minor", before);
+            }
+
+            listx = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
+                    where Regex.IsMatch(el.Attribute("gnm8_major_minor").Value, @"(^\d)-(\d\d)R$")
+                    select el;
+
+            foreach (XElement el in listx)
+            {
+                GroupCollection group = Regex.Match(el.Attribute("gnm8_major_minor").Value, @"(^\d)-(\d\d)R$").Groups;
+                el.SetAttributeValue("gnm8_major_minor", group[1].ToString() + "-" + group[2] + "-R");
+            }
+
+            listx = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_CADItemRevision")
+                    where Regex.IsMatch(el.Attribute("gnm8_major_minor").Value, @"(^\d)R$")
+                    select el;
+
+            foreach (XElement el in listx)
+            {
+                GroupCollection group = Regex.Match(el.Attribute("gnm8_major_minor").Value, @"(^\d)R$").Groups;
+                el.SetAttributeValue("gnm8_major_minor", group[1].ToString() + "-R");
+            }
 
             #region Post Process
 
