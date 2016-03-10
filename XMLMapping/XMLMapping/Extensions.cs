@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using System.Text.RegularExpressions;
 
 namespace XMLMapping
 {
@@ -90,6 +91,9 @@ namespace XMLMapping
 
     public class HelperUtility
     {
+    
+
+
 
         #region Upper Class Stuff
         public static XElement xmlFile = null;
@@ -280,6 +284,11 @@ namespace XMLMapping
 
         public static object LoadSourceData(string path)
         {
+            Regex UGPart1 = new Regex(@"[a-zA-z]{2}\d{6}-\d{3}\/\w-\w{2}(.+)");         //aa123456-789/0-00-BOLT
+            Regex UGPart2 = new Regex(@"[a-zA-z]{2}\d{6}-\d{3}\/\w-\w{2}\.\d{3}(.+)");  //aa123456-789/0-00.000 SHT 1 of 2
+            Regex UGPart3 = new Regex(@"[a-zA-z]{2}5-\d{4}-\d{3}\/\w(.+)");             //aa5-3456-789/0BRACKET
+            Regex UGPart4 = new Regex(@"[a-zA-z]{2}5-\d{4}-\d{3}\/\w\.\d{3}(.+)");      //aa5-3456-789/0.000 - Sheet 1
+
 
             HashSet<string> RefCadItems = new HashSet<string>();
 
@@ -650,13 +659,42 @@ namespace XMLMapping
 
                 switch (el.Dataset.Type)
                 {
-                    case "UGMASTER":
+                  
                     case "UGPART":
-                    case "UGALTREP":
+                        {
+                            if (UGPart1.IsMatch(el.Dataset.OldName))
+                            {
+                                string val = UGPart1.Match(el.Dataset.OldName).Groups[1].Value;
+                                el.Dataset.Name = el.ItemID + "/" + el.RevID + val;
+                            }
+                            else if (UGPart2.IsMatch(el.Dataset.OldName))
+                            {
+                                string val = UGPart2.Match(el.Dataset.OldName).Groups[0].Value;
+                                el.Dataset.Name = el.ItemID + "/" + el.RevID + val;
+                            }
+                            else if (UGPart3.IsMatch(el.Dataset.OldName))
+                            {
+                                string val = UGPart3.Match(el.Dataset.OldName).Groups[1].Value;
+                                el.Dataset.Name = el.ItemID + "/" + el.RevID + val;
+                            }
+                            else if (UGPart4.IsMatch(el.Dataset.OldName))
+                            {
+                                string val = UGPart4.Match(el.Dataset.OldName).Groups[1].Value;
+                                el.Dataset.Name = el.ItemID + "/" + el.RevID + val;
+                            }
+                            else if (string.Equals(el.Dataset.OldName, "drawing", StringComparison.OrdinalIgnoreCase))
+                            {
+                                el.Dataset.Name = el.ItemID + "/" + el.RevID;
+                            }
+
+                            break;
+                        }
                     case "CATPart":
+                    case "UGMASTER":
                     case "CATProduct":
                     case "CATDrawing":
                     case "CATShape":
+                    //case "UGALTREP":
                     case "DirectModel":
                         {
                             el.Dataset.Name = el.ItemID + "/" + el.RevID;
@@ -722,7 +760,7 @@ namespace XMLMapping
             //Config.SerializeObject<string[][]>(usedDatasets.ToArray(), Path.Combine("Cache", "UsedDS.xml"));
             Config.WriteObject<string[][]>(Path.Combine("Cache", "UsedDS.xml"), usedDatasets.ToArray());
 
-            
+
 
             return new { Items = Items.Values.Select(x => x), Revisions = MasterRevisions.Values.Select(x => x), RefCadItems = RefCadItems, RefCadRevisions = RefCadRevisions, DatasetCount = MasterDatasets.Count(), UsedDatasets = usedDatasets };
 
@@ -830,33 +868,33 @@ namespace XMLMapping
             if (!Make)
                 return;
 
-             var datasets = (from rev in revList
+            var datasets = (from rev in revList
                             from dataset in rev.GetDatasets()
                             from drev in dataset.Revisions.Split(',')
-                             where dataset.Name != dataset.OldName
-                             select new { PUID = drev, Name = dataset.Name });
+                            where dataset.Name != dataset.OldName
+                            select new { PUID = drev, Name = dataset.Name });
 
-             List<string> list = new List<string>(); 
+            List<string> list = new List<string>();
 
-             foreach (var ds in datasets)
-             {
-                 StringBuilder sb = new StringBuilder();
+            foreach (var ds in datasets)
+            {
+                StringBuilder sb = new StringBuilder();
 
-                 sb.Append("UPDATE PWORKSPACEOBJECT ");
-                 sb.Append("SET POBJECT_NAME = '" + ds.Name + "' ");
-                 sb.Append("WHERE PUID = '" + ds.PUID + "';");
+                sb.Append("UPDATE PWORKSPACEOBJECT ");
+                sb.Append("SET POBJECT_NAME = '" + ds.Name + "' ");
+                sb.Append("WHERE PUID = '" + ds.PUID + "';");
 
-                 list.Add(sb.ToString());
-             }
+                list.Add(sb.ToString());
+            }
 
-             var groups = Split(list, max);
+            var groups = Split(list, max);
 
 
-             for (int i = 0; i < groups.Count(); i++)
-             {
-                 //groups[i].Insert(0, "!~ItemID~RevID~DsetType~DsetName~RelationName~NewDsetName");
-                 File.WriteAllLines(Path.Combine(path, "SQL_DS_Rename" + (i + 1) + ".sql"), groups[i].ToArray());
-             }
+            for (int i = 0; i < groups.Count(); i++)
+            {
+                //groups[i].Insert(0, "!~ItemID~RevID~DsetType~DsetName~RelationName~NewDsetName");
+                File.WriteAllLines(Path.Combine(path, "SQL_DS_Rename" + (i + 1) + ".sql"), groups[i].ToArray());
+            }
         }
 
         public static void GenerateIPSDatasetRename(ushort max, string path, IEnumerable<Classes.Revision> revList, bool Make)
@@ -868,7 +906,7 @@ namespace XMLMapping
                             from dataset in rev.GetDatasets()
                             //where GetParamCode(dataset.Type) != ""
                             select string.Join("~", new string[6] { rev.ItemID, rev.RevID, dataset.Type, (dataset.OldName.ToUpper().StartsWith("JP")) ? dataset.OldName.Remove(0, 2) : dataset.OldName, dataset.RelationType, dataset.Name })).ToList();
-           
+
             var groups = Split(datasets, max);
 
             //var rsArr = (from r in revList
@@ -1270,11 +1308,11 @@ namespace XMLMapping
                 return;
 
             var list = (from el in MasterRevs
-                       //where el.ObjectType != "Reference Revision"
+                        //where el.ObjectType != "Reference Revision"
                         select string.Join(",", el.ItemTag, el.PUID, el.OldItemID, "=\"" + el.OldRevID + "\"", el.ItemID, "=\"" + el.RevID + "\"", el.Ref2CAD)).ToList();
 
             list.Insert(0, "Item UID, Rev UID, Old ItemID, Old RevID, New ItemId, New RevID, Ref2CAD");
-            
+
 
             File.WriteAllLines(Path.Combine(path, "PartRenum.csv"), list);
 
