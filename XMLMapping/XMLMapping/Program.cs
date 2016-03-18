@@ -865,16 +865,6 @@ namespace Project1
             Console.WriteLine("");
             #endregion
 
-            #region Remove Attributes
-            Console.Write("Remove Attributes");
-            Processing();
-
-            util.GetElementsBy("Form").RemoveAttribute("data_file");
-
-            WriteLineComplete("Complete");
-            Console.WriteLine("");
-            #endregion
-
             #region Change Object Types and Node Names
             Console.Write("Change Object Types and Node Names");
             Processing();
@@ -953,8 +943,8 @@ namespace Project1
             util.GetElementsBy("Item", "object_type", "GNM8_Reference").RenameNodes("GNM8_Reference");
             util.GetElementsBy("ItemRevision", "object_type", "GNM8_ReferenceRevision").RenameNodes("GNM8_ReferenceRevision");
 
-            util.GetElementsBy("DIAMReferenceMaster000").RenameNodes("GNM8_ReferenceMasterS");
-            util.GetElementsBy("DIAMReferenceRevMaster000").RenameNodes("GNM8_ReferenceRevMasterS");
+            util.GetElementsBy("Form", "object_type", "GNM8_ReferenceMaster").RenameNodes("GNM8_ReferenceMaster");
+            util.GetElementsBy("Form", "object_type", "GNM8_ReferenceRevisionMaster").RenameNodes("GNM8_ReferenceRevisionMaster");
 
             #endregion
 
@@ -978,11 +968,11 @@ namespace Project1
 
 
             //change attributes on DIAMRefMaster
-            util.GetElementsBy("GNM8_ReferenceMasterS").RenameAttribute("Customer", "gnm8_Customer");
-            util.GetElementsBy("GNM8_ReferenceMasterS").RenameAttribute("Description", "gnm8_Description");
-            util.GetElementsBy("GNM8_ReferenceMasterS").RenameAttribute("Lead_Program", "gnm8_Lead_Program");
-            util.GetElementsBy("GNM8_ReferenceRevMasterS").RenameAttribute("ECI_Number", "gnm8_ECI_Number");
-            util.GetElementsBy("GNM8_ReferenceRevMasterS").RenameAttribute("Description", "gnm8_Description");
+            //util.GetElementsBy("GNM8_ReferenceMaster").RenameAttribute("Customer", "gnm8_Customer");
+            //util.GetElementsBy("GNM8_ReferenceMaster").RenameAttribute("object_desc", "gnm8_Description");
+            //util.GetElementsBy("GNM8_ReferenceMaster").RenameAttribute("Lead_Program", "gnm8_Lead_Program");
+            //util.GetElementsBy("GNM8_ReferenceRevisionMaster").RenameAttribute("ECI_Number", "gnm8_ECI_Number");
+            //util.GetElementsBy("GNM8_ReferenceRevisionMaster").RenameAttribute("object_desc", "gnm8_Description");
 
 
             util.CopyAttributeByRel("gnm8_dn_part_number", "GNM8_CADItem", "GNM8_CADItemRevision", "puid", "parent_uid");
@@ -1113,19 +1103,7 @@ namespace Project1
 
            
 
-            list = from el in HelperUtility.xmlFile.Elements()
-                   where el.Name.LocalName == "DIAMProductionMaster000" ||
-                   el.Name.LocalName == "DIAMProductionRevMaster000" ||
-                   el.Name.LocalName == "DIAMReferenceMaster000" ||
-                   el.Name.LocalName == "DIAMReferenceRevMaster000" ||
-                   el.Name.LocalName == "DIAMTemplateMaster000" ||
-                   el.Name.LocalName == "DIAMTemplateRevMaster000"
-                   select el;
-
-            foreach (XElement el in list.ToArray())
-            {
-                el.Remove();
-            }
+          
 
             WriteLineComplete("Complete");
             Console.WriteLine("");
@@ -1376,6 +1354,102 @@ namespace Project1
                 GroupCollection group = Regex.Match(el.Attribute("gnm8_major_minor").Value, @"(^\d)R$").Groups;
                 el.SetAttributeValue("gnm8_major_minor", group[1].ToString() + "-R");
             }
+
+            //reference master
+
+           
+
+            list = from f in HelperUtility.xmlFile.Elements(ns + "GNM8_ReferenceMaster")
+                     join d in HelperUtility.xmlFile.Elements(ns + "DIAMReferenceMaster000") on f.Attribute("data_file").Value equals d.Attribute("puid").Value
+                     select d;
+
+
+
+            foreach (var el in list)
+            {
+                el.Name =  ns + "GNM8_ReferenceMasterS";
+                var Customer = el.Attribute("Customer");
+                el.SetAttributeValue("gnm8_Customer", Customer.Value);
+                Customer.Remove();
+
+                var Description = el.Attribute("Description");
+                el.SetAttributeValue("gnm8_Description", Description.Value);
+                Description.Remove();
+
+                var LP = el.Attribute("Lead_Program");
+                el.SetAttributeValue("gnm8_Lead_Program", LP.Value);
+                LP.Remove();
+            }
+
+            list = from f in HelperUtility.xmlFile.Elements(ns + "GNM8_ReferenceRevisionMaster")
+                   join d in HelperUtility.xmlFile.Elements(ns + "DIAMReferenceRevMaster000") on f.Attribute("data_file").Value equals d.Attribute("puid").Value
+                   select d;
+
+
+
+            foreach (var el in list)
+            {
+                el.Name = ns + "GNM8_ReferenceRevMasterS";
+
+                var Description = el.Attribute("Description");
+                el.SetAttributeValue("gnm8_Description", Description.Value);
+                Description.Remove();
+
+                var ECI = el.Attribute("ECI_Number");
+                el.SetAttributeValue("gnm8_ECI_Number", ECI.Value);
+                ECI.Remove();
+            }
+
+            var not = from m in HelperUtility.xmlFile.Elements(ns + "GNM8_ReferenceMasterS")
+                      join rev in HelperUtility.xmlFile.Elements().Where(x=>x.Attribute("puid") != null) on m.Attribute("parent_uid").Value equals rev.Attribute("puid").Value
+                      select rev;
+
+            var not2 = from m in HelperUtility.xmlFile.Elements(ns + "GNM8_ReferenceRevMasterS")
+                      join rev in HelperUtility.xmlFile.Elements().Where(x => x.Attribute("puid") != null) on m.Attribute("parent_uid").Value equals rev.Attribute("puid").Value
+                      select rev;
+
+            var DIAM = from el in HelperUtility.xmlFile.Elements()
+                   where el.Name.LocalName == "DIAMProductionMaster000" ||
+                   el.Name.LocalName == "DIAMProductionRevMaster000" ||
+                   el.Name.LocalName == "DIAMReferenceMaster000" ||
+                   el.Name.LocalName == "DIAMReferenceRevMaster000" ||
+                   el.Name.LocalName == "DIAMTemplateMaster000" ||
+                   el.Name.LocalName == "DIAMTemplateRevMaster000"
+                   select el;
+
+            list = from el in HelperUtility.xmlFile.Elements().Where(el=> el.Attribute("data_file") != null)
+                   join d in DIAM on el.Attribute("data_file").Value equals d.Attribute("puid").Value
+                   select el;
+
+            foreach (XElement el in list)
+            {
+                el.Attribute("data_file").Remove();
+            }
+
+
+
+            foreach (XElement el in DIAM.ToArray())
+            {
+                el.Remove();
+            }
+
+            list = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_ReferenceMaster")
+                   select el;
+
+            foreach (var el in list)
+            {
+                el.Name = ns + "Form";
+            }
+
+            list = from el in HelperUtility.xmlFile.Elements(ns + "GNM8_ReferenceRevisionMaster")
+                   select el;
+
+            foreach(var el in list)
+            {
+                el.Name = ns + "Form";
+            }
+           
+
 
             #region Post Process
 

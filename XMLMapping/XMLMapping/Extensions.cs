@@ -284,10 +284,10 @@ namespace XMLMapping
 
         public static object LoadSourceData(string path)
         {
-            Regex UGPart1 = new Regex(@"[a-zA-z]{2}\d{6}-\d{3}\/\w-\w{2}(.+)");         //aa123456-789/0-00-BOLT
-            Regex UGPart2 = new Regex(@"[a-zA-z]{2}\d{6}-\d{3}\/\w-\w{2}\.\d{3}(.+)");  //aa123456-789/0-00.000 SHT 1 of 2
-            Regex UGPart3 = new Regex(@"[a-zA-z]{2}5-\d{4}-\d{3}\/\w(.+)");             //aa5-3456-789/0BRACKET
-            Regex UGPart4 = new Regex(@"[a-zA-z]{2}5-\d{4}-\d{3}\/\w\.\d{3}(.+)");      //aa5-3456-789/0.000 - Sheet 1
+            Regex UGPart1 = new Regex(@"[a-zA-z]{2}\d{6}-\d{3}\/\w-\w{2}(.*)");             //aa123456-789/0-00-BOLT
+            Regex UGPart2 = new Regex(@"[a-zA-z]{2}\d{6}-\d{3}\/\w-\w{2}\.\d{3}(.*)");      //aa123456-789/0-00.000 SHT 1 of 2
+            Regex UGPart3 = new Regex(@"[a-zA-z]{2}5-[0-9]{6}-[0-9]{3}/\w(.*)");            //aa5-123456-789/0BRACKET
+            Regex UGPart4 = new Regex(@"[a-zA-z]{2}5-[0-9]{6}-[0-9]{3}\/\w\.[0-9]{3}(.*)"); //aa5-123456-789/0.000 - Sheet 1
 
 
             HashSet<string> RefCadItems = new HashSet<string>();
@@ -661,6 +661,7 @@ namespace XMLMapping
                 {
                   
                     case "UGPART":
+                    case "CATDrawing":
                         {
                             if (UGPart1.IsMatch(el.Dataset.OldName))
                             {
@@ -669,7 +670,7 @@ namespace XMLMapping
                             }
                             else if (UGPart2.IsMatch(el.Dataset.OldName))
                             {
-                                string val = UGPart2.Match(el.Dataset.OldName).Groups[0].Value;
+                                string val = UGPart2.Match(el.Dataset.OldName).Groups[1].Value;
                                 el.Dataset.Name = el.ItemID + "/" + el.RevID + val;
                             }
                             else if (UGPart3.IsMatch(el.Dataset.OldName))
@@ -692,7 +693,6 @@ namespace XMLMapping
                     case "CATPart":
                     case "UGMASTER":
                     case "CATProduct":
-                    case "CATDrawing":
                     case "CATShape":
                     //case "UGALTREP":
                     case "DirectModel":
