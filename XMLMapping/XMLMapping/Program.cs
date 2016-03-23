@@ -1448,7 +1448,16 @@ namespace Project1
             {
                 el.Name = ns + "Form";
             }
-           
+
+
+            list = from el in HelperUtility.xmlFile.Elements(ns + "Form")
+                   where el.Attribute("object_type").Value != "GNM8_ReferenceMaster" && el.Attribute("object_type").Value != "GNM8_ReferenceRevisionMaster" && el.Attribute("data_file") != null
+                   select el;
+
+            foreach (var el in list)
+            {
+                el.Attribute("data_file").Remove();
+            }
 
 
             #region Post Process
